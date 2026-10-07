@@ -17,7 +17,7 @@ AI employee service desk and lifecycle orchestrator for a fictional company. uv 
 ## Commands
 
 ```bash
-just init        # .env from .env.example, uv sync --all-packages
+just init        # .env from .env.example, uv sync --all-packages, install the pre-commit hooks
 just up          # local deps in Docker (Redis, OpenFGA, OPA, Temporal, Presidio); `just down` stops them
 just dev <svc>   # one service with hot reload, e.g. `just dev tool-gateway`
 just fmt         # ruff fix + format
@@ -45,8 +45,8 @@ Stored in `docs/specs/`, one folder per decision: `docs/specs/NNNN-title/index.m
 ## Tooling
 
 - Lint and format: ruff (config in root `pyproject.toml`). Types: mypy strict.
-- Pre commit: `pre-commit` hooks run ruff check, ruff format and mypy on every commit (to install: `/develop tooling`).
-- CI: GitHub Actions runs `just check` on every push and PR (to add: `/develop tooling`).
+- Pre commit: `.pre-commit-config.yaml` runs ruff check, ruff format, mypy (`just typecheck`), `uv lock --check` and file hygiene on every commit. `just hooks` installs, `just hooks-all` runs them on every file.
+- CI: `.github/workflows/ci.yml` runs `just check` on pushes to main, on PRs, and by hand (workflow_dispatch). Service image builds on main come later, with the cluster phase.
 
 ## Git
 
