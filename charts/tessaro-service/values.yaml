@@ -1,0 +1,71 @@
+# Defaults for every Ask Tessaro service. Each release overrides these in deploy/values/<service>.yaml.
+
+# Required. The chart never creates the Namespace; the cluster baseline does.
+namespace: ""
+
+replicaCount: 1
+
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Every service listens on 8080.
+port: 8080
+
+# Non secret settings, rendered into a ConfigMap and read as env vars.
+env: {}
+
+# Name of a Secret in the same namespace (decrypted from SOPS by KSOPS). Never rendered here.
+existingSecret: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+probes:
+  liveness: /healthz
+  readiness: /readyz
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+serviceAccount:
+  automountToken: false
+
+# OPA sidecar (the tool gateway). Policy and data come from a ConfigMap rendered from policy/.
+opa:
+  enabled: false
+  image:
+    repository: openpolicyagent/opa
+    tag: 1.21.1-static
+  policyConfigMap: ""
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+# Default deny for this pod; only these paths are allowed. Ports empty means all ports.
+network:
+  ingress: []   # - { namespace: assistant, podLabels: { app.kubernetes.io/name: master-agent }, ports: [8080] }
+  egress: []    # same shape
+  dns: true     # allow cluster DNS (kube-system, port 53)
+  egressCIDRs: []  # - { cidr: 203.0.113.0/24, ports: [443] }  (internet egress, privacy proxy only)

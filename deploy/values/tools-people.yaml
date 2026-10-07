@@ -1,0 +1,19 @@
+# Release values for tools-people (chart: charts/tessaro-service). Paths: PRD 14.4.
+namespace: tools-people
+image:
+  repository: ghcr.io/REPLACE_OWNER/tessaro-tools-people
+  tag: scaffold # CI sets the git commit SHA
+existingSecret: tools-people-secrets # SYSTEM_API_TOKEN, TOKEN_VERIFY_KEY
+env:
+  SYSTEM_URL: http://frappe.hr-finance.svc.cluster.local:8080
+  OPENFGA_API_URL: http://openfga.platform.svc.cluster.local:8080
+network:
+  ingress:
+    - namespace: assistant
+      podLabels: { app.kubernetes.io/name: tool-gateway }
+      ports: [8080]
+  egress:
+    - namespace: hr-finance # Frappe HR only
+    - namespace: platform # OpenFGA record checks
+      podLabels: { app.kubernetes.io/name: openfga }
+      ports: [8080]

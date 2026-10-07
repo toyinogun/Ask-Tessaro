@@ -1,0 +1,10 @@
+# Release values for __SERVICE__ (chart: charts/tessaro-service).
+namespace: __NAMESPACE__
+image:
+  repository: ghcr.io/REPLACE_OWNER/tessaro-__SERVICE__
+  tag: scaffold # CI sets the git commit SHA
+existingSecret: ""
+env: {}
+network:
+  ingress: []
+  egress: []

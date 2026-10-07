@@ -1,0 +1,24 @@
+# Release values for tool-gateway (chart: charts/tessaro-service). Paths: PRD 14.4.
+namespace: assistant
+image:
+  repository: ghcr.io/REPLACE_OWNER/tessaro-tool-gateway
+  tag: scaffold # CI sets the git commit SHA
+existingSecret: tool-gateway-secrets # TOKEN_VERIFY_KEY
+env:
+  OPA_URL: http://localhost:8181
+  GATEWAY_UPSTREAMS: http://tools-people.tools-people.svc.cluster.local:8080/mcp
+opa:
+  enabled: true
+  policyConfigMap: tool-gateway-policy
+network:
+  ingress:
+    - namespace: assistant
+      podLabels: { app.kubernetes.io/name: master-agent }
+      ports: [8080]
+    - namespace: workflows
+      podLabels: { app.kubernetes.io/name: jml-worker }
+      ports: [8080]
+  egress:
+    - namespace: tools-people
+      podLabels: { app.kubernetes.io/name: tools-people }
+      ports: [8080]

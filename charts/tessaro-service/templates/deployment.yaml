@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tessaro.name" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tessaro.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "tessaro.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tessaro.labels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "tessaro.name" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "tessaro.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "tessaro.name" . }}
+            {{- with .Values.existingSecret }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness }}
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness }}
+              port: http
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+        {{- if .Values.opa.enabled }}
+        - name: opa
+          image: "{{ .Values.opa.image.repository }}:{{ .Values.opa.image.tag }}"
+          args: ["run", "--server", "--addr=localhost:8181", "--diagnostic-addr=0.0.0.0:8282", "/policy"]
+          ports:
+            - name: opa-diag
+              containerPort: 8282
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: opa-diag
+          readinessProbe:
+            httpGet:
+              path: /health?bundles
+              port: opa-diag
+          resources:
+            {{- toYaml .Values.opa.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: policy
+              mountPath: /policy
+              readOnly: true
+        {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.opa.enabled }}
+        - name: policy
+          configMap:
+            name: {{ .Values.opa.policyConfigMap }}
+        {{- end }}

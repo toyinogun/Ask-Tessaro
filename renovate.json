@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "Europe/Amsterdam",
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on monday"] },
+  "packageRules": [
+    { "matchManagers": ["pep621"], "groupName": "python dependencies" },
+    { "matchManagers": ["dockerfile"], "groupName": "container images" },
+    { "matchManagers": ["helm-values", "helmv3"], "groupName": "helm" },
+    { "matchManagers": ["github-actions"], "groupName": "github actions" }
+  ]
+}

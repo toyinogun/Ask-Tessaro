@@ -1,0 +1,23 @@
+# Release values for privacy-proxy (chart: charts/tessaro-service). Paths: PRD 14.4.
+namespace: assistant
+image:
+  repository: ghcr.io/REPLACE_OWNER/tessaro-privacy-proxy
+  tag: scaffold # CI sets the git commit SHA
+existingSecret: privacy-proxy-secrets # PROXY_UPSTREAM_API_KEY, PROXY_MAPPING_KEY, Redis ACL password
+env:
+  PROXY_UPSTREAM_URL: https://api.deepseek.com
+  PROXY_MAPPING_TTL_HOURS: 24
+  PROXY_FAIL_CLOSED: true
+network:
+  ingress:
+    - namespace: assistant
+      podLabels: { app.kubernetes.io/name: master-agent }
+      ports: [8080]
+  egress:
+    - namespace: assistant # Redis: encrypted pseudonym mappings
+      podLabels: { app.kubernetes.io/name: redis }
+      ports: [6379]
+    - namespace: platform # Presidio analyzer
+      podLabels: { app.kubernetes.io/name: presidio-analyzer }
+  # The only internet path in the cluster (api.deepseek.com). CIDR or CNI policy: feature 8.
+  egressCIDRs: []

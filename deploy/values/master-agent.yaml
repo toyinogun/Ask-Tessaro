@@ -1,0 +1,22 @@
+# Release values for master-agent (chart: charts/tessaro-service). Paths: PRD 14.4.
+namespace: assistant
+image:
+  repository: ghcr.io/REPLACE_OWNER/tessaro-master-agent
+  tag: scaffold # CI sets the git commit SHA
+existingSecret: master-agent-secrets # Redis ACL password
+env:
+  LLM_BASE_URL: http://privacy-proxy.assistant.svc.cluster.local:8080/v1
+  LLM_MODEL_AGENT: deepseek-v4-pro
+  LLM_MODEL_TOOLS: deepseek-v4-flash
+network:
+  ingress: []
+  egress:
+    - namespace: assistant # model calls
+      podLabels: { app.kubernetes.io/name: privacy-proxy }
+      ports: [8080]
+    - namespace: assistant # tool calls
+      podLabels: { app.kubernetes.io/name: tool-gateway }
+      ports: [8080]
+    - namespace: assistant # Redis streams
+      podLabels: { app.kubernetes.io/name: redis }
+      ports: [6379]

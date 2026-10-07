@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "async-python-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/python-development/skills/async-python-patterns/SKILL.md",
+      "computedHash": "e0f03523d989848310c93a599541948474f24ccaa04c8d52ed1b45cc5adaebde"
+    },
+    "fastapi-templates": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/api-scaffolding/skills/fastapi-templates/SKILL.md",
+      "computedHash": "629e7e404a3627790138127508b889bf38de3e7fad3647f2bb4367e5bfd19bd1"
+    },
+    "gitops-workflow": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/kubernetes-operations/skills/gitops-workflow/SKILL.md",
+      "computedHash": "877ef7e21cdf863257e7fe06154d629f510bbe8467485bd3970519e292e18424"
+    },
+    "helm-chart-scaffolding": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/kubernetes-operations/skills/helm-chart-scaffolding/SKILL.md",
+      "computedHash": "d37f4bee4daa0c969ce9912054b46b04164d57ecd0e1d958e6dfb2e5aec16503"
+    },
+    "langchain-dependencies": {
+      "source": "langchain-ai/langchain-skills",
+      "sourceType": "github",
+      "skillPath": "config/skills/langchain-dependencies/SKILL.md",
+      "computedHash": "d11337493fa4828c12d2d1793fbdf3bb0d5ae67763a03e98b0f1aa3d0ff6825b"
+    },
+    "langgraph-fundamentals": {
+      "source": "langchain-ai/langchain-skills",
+      "sourceType": "github",
+      "skillPath": "config/skills/langgraph-fundamentals/SKILL.md",
+      "computedHash": "71a81a229a520f2a887e12d9114684243eae6d910e951a316c4c8f81b3444dd8"
+    },
+    "langgraph-persistence": {
+      "source": "langchain-ai/langchain-skills",
+      "sourceType": "github",
+      "skillPath": "config/skills/langgraph-persistence/SKILL.md",
+      "computedHash": "0e14611b0310a7a30e9977ba99b00a11b7ea63ebdd7b0c490d03040349ead0ed"
+    },
+    "temporal-python-testing": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/backend-development/skills/temporal-python-testing/SKILL.md",
+      "computedHash": "b377094ba2b4d7fd9a1c6e7313bc54e07570f5ba802c62ad81d83d722ecc8539"
+    },
+    "workflow-orchestration-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/backend-development/skills/workflow-orchestration-patterns/SKILL.md",
+      "computedHash": "5c300d6d3241235a765a637c2953faf1ff2b2db4be54038056c6db6d9ff4ce1c"
+    }
+  }
+}

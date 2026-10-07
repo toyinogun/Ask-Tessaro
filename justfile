@@ -1,0 +1,100 @@
+# Ask Tessaro task runner. `just` lists the recipes; `just check` runs every check.
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+packages := `find libs services -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tr "\n" " " || true`
+values_files := `ls deploy/values/*.yaml 2>/dev/null | tr '\n' ' ' || true`
+kube_version := "1.33.0"
+
+default:
+    @just --list
+
+# Create .env from the template and install every package
+init:
+    @if [ -f .env ]; then echo ".env exists, leaving it alone"; else cp .env.example .env && echo "created .env from .env.example"; fi
+    uv sync --all-packages --locked
+
+# Start the local dependencies (Redis, OpenFGA, OPA, Temporal dev server, Presidio)
+up:
+    docker compose up -d --wait
+
+# Stop the local dependencies
+down:
+    docker compose down
+
+# Run one service with hot reload on its local port, e.g. `just dev tool-gateway`
+dev service port="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{ service }}" in
+        zulip-adapter) default=18081 ;;
+        privacy-proxy) default=18082 ;;
+        master-agent)  default=18083 ;;
+        tool-gateway)  default=18084 ;;
+        tools-people)  default=18085 ;;
+        *)             default=18099 ;;
+    esac
+    port="{{ port }}"
+    exec uv run --env-file .env --package {{ service }} uvicorn \
+        "tessaro_{{ replace(service, "-", "_") }}.main:app" --reload --port "${port:-$default}"
+
+# Ruff lint and format check
+lint:
+    uv run ruff check .
+    uv run ruff format --check .
+
+# Apply ruff fixes and formatting
+fmt:
+    uv run ruff check --fix .
+    uv run ruff format .
+
+# mypy --strict, one run per package so test module names never collide
+typecheck:
+    for p in {{ packages }}; do echo "mypy $p"; uv run mypy "$p/src" "$p/tests"; done
+
+# pytest per package with an 80% coverage gate
+test:
+    for p in {{ packages }}; do \
+        pkg="tessaro_$(basename "$p" | sed 's/^tessaro-//; s/-/_/g')"; \
+        echo "pytest $p ($pkg)"; \
+        uv run pytest "$p/tests" --cov="$pkg" --cov-fail-under=80 -q; \
+    done
+
+# OPA policy tests and OpenFGA model tests (skipped while the folders hold no tests)
+policy:
+    if ls policy/*.rego >/dev/null 2>&1; then opa test policy/ -v; else echo "policy/: no Rego yet (feature 6)"; fi
+    if ls authz/*.fga.yaml >/dev/null 2>&1; then for t in authz/*.fga.yaml; do fga model test --tests "$t"; done; else echo "authz/: no model tests yet (feature 5)"; fi
+
+# Lint the shared chart and validate it rendered with every release values file
+charts:
+    helm lint charts/tessaro-service --values charts/tessaro-service/ci/test-values.yaml
+    for f in charts/tessaro-service/ci/test-values.yaml {{ values_files }}; do \
+        echo "render $f"; \
+        helm lint charts/tessaro-service --quiet --values "$f"; \
+        helm template "$(basename "$f" .yaml)" charts/tessaro-service --values "$f" \
+            | kubeconform -strict -summary -kubernetes-version {{ kube_version }}; \
+    done
+
+# Build one service image locally, e.g. `just image tool-gateway`
+image service:
+    docker build -f services/{{ service }}/Dockerfile -t tessaro-{{ service }}:local .
+
+# Stamp a new service from templates/service, e.g. `just new-service tools-it tools-it`
+new-service name namespace:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    pkg="tessaro_$(echo '{{ name }}' | tr '-' '_')"
+    dest="services/{{ name }}"
+    if [ -e "$dest" ]; then echo "$dest already exists" >&2; exit 1; fi
+    mkdir -p "$dest"
+    cp -R templates/service/src templates/service/tests templates/service/pyproject.toml templates/service/Dockerfile "$dest/"
+    mv "$dest/src/__PKG__" "$dest/src/$pkg"
+    mv "$dest/tests/test___PKG___health.py" "$dest/tests/test_${pkg}_health.py"
+    sed "s/__SERVICE__/{{ name }}/g; s/__PKG__/$pkg/g; s/__NAMESPACE__/{{ namespace }}/g" \
+        templates/service/values.yaml > "deploy/values/{{ name }}.yaml"
+    find "$dest" -type f \( -name '*.py' -o -name '*.toml' -o -name 'Dockerfile' \) -print0 \
+        | xargs -0 perl -pi -e "s/__SERVICE__/{{ name }}/g; s/__PKG__/$pkg/g"
+    echo "created $dest and deploy/values/{{ name }}.yaml; run 'uv lock' next"
+
+# Everything CI will run
+check: lint typecheck test policy charts

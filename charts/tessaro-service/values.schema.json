@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["namespace", "image", "port", "network"],
+  "properties": {
+    "namespace": { "type": "string", "minLength": 1 },
+    "replicaCount": { "type": "integer", "minimum": 0 },
+    "image": {
+      "type": "object",
+      "required": ["repository", "tag"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string", "minLength": 1 },
+        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] }
+      }
+    },
+    "port": { "const": 8080 },
+    "env": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Z][A-Z0-9_]*$" },
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    },
+    "existingSecret": { "type": "string" },
+    "opa": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "policyConfigMap": { "type": "string" }
+      },
+      "if": { "properties": { "enabled": { "const": true } } },
+      "then": { "properties": { "policyConfigMap": { "minLength": 1 } } }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ingress", "egress"],
+      "properties": {
+        "ingress": { "type": "array", "items": { "$ref": "#/$defs/peer" } },
+        "egress": { "type": "array", "items": { "$ref": "#/$defs/peer" } },
+        "dns": { "type": "boolean" },
+        "egressCIDRs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cidr"],
+            "properties": {
+              "cidr": { "type": "string", "minLength": 1 },
+              "ports": { "$ref": "#/$defs/ports" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ports": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 65535 } },
+    "peer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace"],
+      "properties": {
+        "namespace": { "type": "string", "minLength": 1 },
+        "podLabels": { "type": "object", "additionalProperties": { "type": "string" } },
+        "ports": { "$ref": "#/$defs/ports" }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+
+# Local settings and secrets (never commit; .env.example is the template)
+.env
+*.dec.yaml
+age.key
+
+# Rendered charts
+.rendered/
+
+# OS
+.DS_Store
+
+# Private planning docs (kept local, not published)
+PRD.md
+*.pdf

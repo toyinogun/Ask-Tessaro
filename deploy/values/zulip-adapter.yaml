@@ -1,0 +1,19 @@
+# Release values for zulip-adapter (chart: charts/tessaro-service). Paths: PRD 14.4.
+namespace: assistant
+image:
+  repository: ghcr.io/REPLACE_OWNER/tessaro-zulip-adapter
+  tag: scaffold # CI sets the git commit SHA
+existingSecret: zulip-adapter-secrets # ZULIP_BOT_API_KEY, ZULIP_WEBHOOK_TOKEN, AUTHENTIK_API_TOKEN, TOKEN_SIGNING_KEY
+env:
+  TOKEN_TTL_SECONDS: 300
+  APPROVAL_CODE_TTL_HOURS: 72
+network:
+  ingress:
+    - namespace: chat # Zulip outgoing webhook
+      ports: [8080]
+  egress:
+    - namespace: chat # post replies through the Zulip API
+    - namespace: identity # Authentik user lookup
+    - namespace: assistant # Redis: dedup keys and the question/reply streams
+      podLabels: { app.kubernetes.io/name: redis }
+      ports: [6379]

@@ -1,0 +1,43 @@
+# Local dependencies for the no cluster dev loop. Our own services run on the laptop with
+# `just dev <service> <port>`; team systems are in memory fakes from tessaro-clients.
+name: ask-tessaro
+
+services:
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  openfga:
+    image: openfga/openfga:v1
+    command: ["run"] # in memory store by default
+    ports: ["18080:8080"] # HTTP API on host 18080
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=localhost:8081"]
+      interval: 5s
+      retries: 10
+
+  opa:
+    image: openpolicyagent/opa:1.21.1-static
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "--watch", "/policy"]
+    ports: ["8181:8181"]
+    volumes: [./policy:/policy:ro]
+
+  temporal:
+    image: temporalio/temporal:latest
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--ui-ip", "0.0.0.0"]
+    ports:
+      - "7233:7233" # frontend
+      - "8233:8233" # web UI
+
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    ports: ["5002:3000"]
+
+volumes:
+  redis-data:

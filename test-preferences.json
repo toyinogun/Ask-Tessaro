@@ -1,0 +1,9 @@
+{
+  "tool": "pytest",
+  "gate": null,
+  "additionalTools": ["pytest-asyncio", "pytest-cov"],
+  "e2eTool": "none",
+  "testDir": "tests/ in each package (libs/<name>/tests, services/<name>/tests)",
+  "filePattern": "test_*.py",
+  "packageManager": "uv"
+}

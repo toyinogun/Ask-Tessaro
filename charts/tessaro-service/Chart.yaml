@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tessaro-service
+description: The one shared chart for every Ask Tessaro service. Release name = service name.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

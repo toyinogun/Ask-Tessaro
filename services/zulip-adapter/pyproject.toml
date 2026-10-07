@@ -1,0 +1,13 @@
+[project]
+name = "zulip-adapter"
+version = "0.1.0"
+description = "Ask Tessaro zulip-adapter service"
+requires-python = ">=3.13,<3.14"
+dependencies = ["tessaro-core"]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "tessaro_zulip_adapter"

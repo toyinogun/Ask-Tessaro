@@ -1,0 +1,23 @@
+# Exercises every optional branch of the chart; `just charts` renders it alongside the real releases.
+namespace: chart-test
+image:
+  repository: ghcr.io/example/tessaro-chart-test
+  tag: test
+env:
+  LOG_LEVEL: DEBUG
+  TOKEN_TTL_SECONDS: 300
+existingSecret: chart-test-secrets
+opa:
+  enabled: true
+  policyConfigMap: chart-test-policy
+network:
+  ingress:
+    - namespace: assistant
+      podLabels:
+        app.kubernetes.io/name: master-agent
+      ports: [8080]
+  egress:
+    - namespace: platform
+  egressCIDRs:
+    - cidr: 203.0.113.0/24
+      ports: [443]
