@@ -18,7 +18,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation (no cluster) | done |
-| 2 | Coding standards & tooling | Foundation (no cluster) | planned |
+| 2 | Coding standards & tooling | Foundation (no cluster) | in-progress |
 | 3 | Fictional company dataset | Foundation (no cluster) | planned |
 | 4 | Identity token & tool contracts | Foundation (no cluster) | planned |
 | 5 | Record access model | Foundation (no cluster) | planned |
@@ -64,10 +64,12 @@ spec [0001](../specs/0001-stack-architecture/index.md) · code in `/` (workspace
 - [x] Verify it: `/check verify stack & architecture`
 - [x] Test it: `/test stack & architecture`
 
-### 2. Coding standards & tooling
+### 2. Coding standards & tooling · in-progress
 Capture conventions and tooling from the real scaffolded repo, then install lint, format, type checks, pre commit hooks and CI. No cluster needed.
 **Done when:** root `AGENTS.md` reflects the real stack, and lint, format, type checks and CI run clean.
-- [ ] Capture conventions + tooling choices: `/audit`
+- [x] Capture conventions + tooling choices: `/audit`
+- [x] Install pre-commit hooks and CI: `/develop tooling` (code in `.pre-commit-config.yaml`, `.github/workflows/ci.yml`)
+- [ ] First CI run on GitHub is green (needs a push)
 
 ### 3. Fictional company dataset · needs a decision
 The single source of truth for the made up company: about 30 employees in five teams, managers, HR advisors, an expiring stand in, leave, claims, tickets, devices, bookings, about 20 handbook pages, the pending joiners, mover and leaver, and the three traps (injected ticket text, sick colleague, Dutch name). Every system and test loads from it. No cluster needed.
