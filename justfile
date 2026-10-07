@@ -13,6 +13,15 @@ default:
 init:
     @if [ -f .env ]; then echo ".env exists, leaving it alone"; else cp .env.example .env && echo "created .env from .env.example"; fi
     uv sync --all-packages --locked
+    uv run pre-commit install
+
+# Install the git pre-commit hooks (ruff, ruff format, mypy, file hygiene)
+hooks:
+    uv run pre-commit install
+
+# Run every pre-commit hook against the whole repo
+hooks-all:
+    uv run pre-commit run --all-files
 
 # Start the local dependencies (Redis, OpenFGA, OPA, Temporal dev server, Presidio)
 up:
