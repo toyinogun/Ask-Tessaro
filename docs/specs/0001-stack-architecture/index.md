@@ -99,7 +99,7 @@ Each service and lib uses the src layout (`src/tessaro_<name>/`, `tests/`). The 
 | Port | Every service listens on `8080` |
 | Health | `GET /healthz` (process up) and `GET /readyz` (dependencies reachable) from `tessaro-core` |
 | Image | `python:3.13-slim` multi stage, built from the repo root as context. The builder stage uses a pinned `ghcr.io/astral-sh/uv` tag and runs `uv sync --package <service> --locked --no-dev`, which pulls in the shared libs by path; the runtime stage copies the venv and runs as a non root user. The shell is kept for demo step 8. `.python-version` and `requires-python` pin 3.13 |
-| Image tag | Git commit SHA. CI builds every service image on every `main` commit (layer cache keeps it fast), so no values file points at a tag that was never built: `ghcr.io/<owner>/tessaro-<service>:<sha>` |
+| Image tag | Git commit SHA. Once the image job exists (deferred, see CI pipeline), CI builds every service image on every `main` commit (layer cache keeps it fast), so no values file points at a tag that was never built: `ghcr.io/<owner>/tessaro-<service>:<sha>` |
 | Config | Non secret config in a ConfigMap; secrets in a per namespace Secret; both read as env vars by pydantic-settings |
 
 ### Local dev loop (no cluster)
@@ -126,7 +126,9 @@ Each service and lib uses the src layout (`src/tessaro_<name>/`, `tests/`). The 
 
 ### CI pipeline
 
-On every PR: `uv sync --locked`, ruff check and format check, mypy strict, pytest with coverage gate, `opa test policy/`, `fga model test` on `authz/`, chart lint, render and kubeconform. On `main`: the same checks, then build and push every service image tagged with the SHA.
+On every PR: `uv sync --locked`, ruff check and format check, mypy strict, pytest with coverage gate, `opa test policy/`, `fga model test` on `authz/`, chart lint, render and kubeconform. On `main`: the same checks. Both run as `just check` in `.github/workflows/ci.yml`, which you can also start by hand.
+
+**Deferred: the image job.** Building and pushing every service image tagged with the SHA on `main` waits for the cluster phase. Nothing pulls the images before then, so building them now only costs CI minutes. Add it before the first feature that deploys our own services (*Assistant deploy & isolation*, feature 16), once the cluster investigation (feature 8) confirms the nodes can pull from GHCR. Until then, `just image <service>` builds an image locally. (Updated 2026-10-07.)
 
 ## Consequences
 
@@ -148,11 +150,12 @@ On every PR: `uv sync --locked`, ruff check and format check, mypy strict, pytes
 
 ## Follow-up
 
-- [ ] The repo is not yet under git. Run `git init`, create the public GitHub repo, and push before CI can run.
+- [x] The repo is not yet under git. Run `git init`, create the public GitHub repo, and push before CI can run.
 - [ ] Before pinning the MCP SDK, run a short spike: one tool server, the gateway passing `tools/list` and `tools/call` through, and the agent's `langchain-mcp-adapters` client, including the `Authorization` header forwarded on each call. If `mcp` 2.x or the adapters do not fit, pin `mcp<2` (v2 and the adapter versions were unverified today; reports differ on whether FastMCP is still built in).
 - [ ] Feature 4 must decide who mints workflow worker tokens (recommended: a `tessaro-auth` function, with its signing key mounted only in the `workflows` namespace).
 - [ ] Feature 8 decides how the proxy's internet egress to `api.deepseek.com` is allowed (CIDR or a CNI policy), and the cluster baseline adds the Redis and gateway paths to its allowed path table.
 - [ ] Optional MCP servers worth connecting once the systems run on the cluster: Langfuse (official), Argo CD (`argoproj-labs/mcp-for-argocd`), OpenFGA (`evansims/openfga-mcp`, community), and a Grafana/Loki server. Connecting one is a step in your Claude Code MCP settings.
 - [ ] Confirm `temporalio` and Presidio/spaCy wheels install on Python 3.13 at scaffold time (Python version support was unverified).
+- [ ] Add the main only image job (build and push `ghcr.io/<owner>/tessaro-<service>:<sha>` for every service, using `GITHUB_TOKEN` with `packages: write`) before feature 16 deploys our services. Deferred on 2026-10-07; see CI pipeline.
 - [ ] Cluster investigation (feature 8) decides: whether Argo CD already exists, the ingress and storage classes, and whether nodes can pull from GHCR. Revisit the Deploy and Secrets rows if it finds something different.
-- [ ] `/audit` (feature 2) should capture this stack's conventions (layout, ports, health routes, logging fields, `just` recipes) in root `AGENTS.md`, plus pre commit hooks, and list the nine installed skills in its `## Agent skills` section. Declined as off stack: the Azure, AWS, Firebase, Entra, BetterAuth and Grafana Mimir/Beyla skills.
+- [x] `/audit` (feature 2) should capture this stack's conventions (layout, ports, health routes, logging fields, `just` recipes) in root `AGENTS.md`, plus pre commit hooks, and list the nine installed skills in its `## Agent skills` section. Declined as off stack: the Azure, AWS, Firebase, Entra, BetterAuth and Grafana Mimir/Beyla skills.
