@@ -1,0 +1,56 @@
+# Runs `just check` (lint, typecheck, tests with the 80% gate, policy, charts) on every push and PR.
+# Image builds and pushes to GHCR on main come later, with the cluster phase (spec 0001, CI pipeline).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KUBECONFORM_VERSION: v0.8.0
+  FGA_VERSION: v0.8.1
+
+jobs:
+  check:
+    name: just check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - uses: extractions/setup-just@v4.0.0
+
+      - uses: azure/setup-helm@v5.0.1
+
+      - uses: open-policy-agent/setup-opa@v2.4.0
+
+      - name: Install kubeconform and the OpenFGA CLI
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" kubeconform
+          curl -fsSL "https://github.com/openfga/cli/releases/download/${FGA_VERSION}/fga_${FGA_VERSION#v}_linux_amd64.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" fga
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install packages
+        run: |
+          cp .env.example .env
+          uv sync --all-packages --locked
+
+      - name: Run every check
+        run: just check
