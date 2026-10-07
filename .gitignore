@@ -24,3 +24,6 @@ age.key
 # Private planning docs (kept local, not published)
 PRD.md
 *.pdf
+
+# Build in public drafts and video renders (kept local)
+.bip/

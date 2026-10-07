@@ -5,6 +5,8 @@ An AI employee service desk and lifecycle orchestrator for a fictional 2,400 per
 **Build approach:** Tracer Bullet (prove the whole chain from Zulip to a team system works on one real question, then thicken it one strand at a time).
 **Workflow:** Beta (after `/develop`: `/check verify`, then `/test`). The project default level of rigor. `/architect` is the recommended first stop for a feature with a real decision, but skippable when you already know the build. Security core features carry `· GA` (adds a fresh model `/check review` and `/document`).
 
+**Sharing:** after each milestone (every phase or slice below is one), share what you built, mainly on LinkedIn: one post plus one short video. See [Milestone posts](#milestone-posts).
+
 **Build target:** the full demo script in PRD section 14.6, plus the mover workflow as the last slice.
 
 **Cluster note:** you are away from the k3s cluster for now. The first phase, *Foundation (no cluster)*, is everything you can build and test on your laptop. *Foundation (cluster)* starts with the read only environment investigation once you are home, and nothing gets installed before that report exists. Features in Slice 1 and later can have their code started early against test doubles, but each one is only done once it runs against the real system on the cluster.
@@ -260,6 +262,25 @@ A video of the demo for people who will not run it.
 **Done when:** a recording covers all eight demo steps with narration or captions.
 - [ ] Build it: `/develop recorded walkthrough`
 
+## Milestone posts
+
+When the last feature in a milestone turns `done`, share it before you start the next one: one LinkedIn post and one short video (60 to 90 seconds, square or vertical, with captions so it works on mute). Drafts and renders live in `.bip/` at the repo root, which is gitignored, so they never land in the public repo.
+
+How to make them (recommendations, swap in whatever you like):
+- **Post:** `/build-in-public generate posts` for LinkedIn. Feed it the milestone's done lines, the specs it closed, and one real number or screenshot from `/check verify`.
+- **Video:** `/faceless-explainer` from the final post text (narration, diagrams, captions). When the milestone shipped as one pull request, `/pr-to-video` on that PR is the alternative.
+- **Repo link:** point readers to https://github.com/toyinogun/Ask-Tessaro.
+
+- [ ] **Foundation (no cluster)** · ready when features 1 to 7 are done · angle: designing the safety layer before any infrastructure exists (signed tokens, record access model, tool policy, a privacy proxy that fails closed), all tested on a laptop.
+- [ ] **Foundation (cluster)** · ready when features 8 to 11 are done · angle: moving onto a real three node k3s cluster, default deny networking, and every off the shelf system signing in through one identity provider.
+- [ ] **Slice 1: Leave balance end to end** · ready when features 12 to 16 are done · angle: the first real answer in Zulip, traced through every layer, with the masked trace and the agent pod that cannot reach the HR system.
+- [ ] **Slice 2: Every Phase 1 question** · ready when features 17 to 22 are done · angle: one assistant answering for IT, Finance, Workplace and the handbook, plus the safety suite and leak scan as deploy gates.
+- [ ] **Slice 3: Joiner** · ready when features 23 to 27 are done · angle: a durable onboarding workflow with approvals in chat, and what happens when a system fails halfway (retries, then clean undo).
+- [ ] **Slice 4: Manager views & stand ins** · ready when features 28 and 29 are done · angle: time boxed delegation, the stand in who can approve on Friday and is refused on Monday.
+- [ ] **Slice 5: Leaver** · ready when feature 30 is done · angle: removing every access at 17:30 on the last day, never undone, with the audit trail to prove it.
+- [ ] **Slice 6: Mover** · ready when feature 31 is done · angle: granting new access before removing the old, so nobody loses a working day.
+- [ ] **Showcase** · ready when features 32 to 35 are done · angle: the full demo, the evaluation results, and what would change before real employee data.
+
 ## Deferred
 Out of scope for the current build pass, kept so the plan stays honest.
 - **EU hosted model**: replace the DeepSeek API before any real data (open question 1) · needs a decision
@@ -282,6 +303,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 | `done` | **you, when you decide it is** (any skill sets it when you say so); `/sync` reconciles | boxes you ran ticked, skipped ones marked skipped; the tier's last stage (`Prototype` → after `/develop`; `Alpha` → after `/check verify`; `Beta`/`GA` → after `/test`) is the suggested point to call it done; `/sync` captures conventions |
 
 - **Next step** = the first unticked box (always a command or a tracked milestone).
+- **Milestone posts** sit outside the features: they never block a feature's `done`, and the Next step rule above ignores them. When a milestone's last feature turns `done`, its post and video are the suggested step before the next feature.
 - **needs a decision** = run `/architect` first; otherwise straight to `/develop` (or `/audit` for standards & tooling). The tag drops once the spec is captured.
 - **Atomic build tasks live in the spec's `## Build plan`, not here**: the scope carries only the milestone rollup.
 - **Status** `planned` → `in-progress` → `done`, plus `existing` (pre workflow) and `dropped` (de scoped, kept for history).
