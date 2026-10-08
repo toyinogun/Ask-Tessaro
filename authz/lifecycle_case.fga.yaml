@@ -1,0 +1,187 @@
+# Lifecycle case approval with separation of duties (spec 0004 AC-5, AC-6, AC-7).
+# Each fixture case carries its org, team and subject tuples, exactly as a workflow writes them.
+# Checked at 2027-03-15T09:10:00Z, inside the payments stand in window.
+name: lifecycle cases
+model_file: model.fga
+tuple_file: .build/openfga.tuples.yaml
+tests:
+  - name: "the joiner case: manager and stand in approve, IT approver approves IT, the joiner gets nothing (AC-7)"
+    tuples:
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "user:TES-01042", relation: subject, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "user:TES-01001", relation: subject, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "user:TES-01002", relation: subject, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "user:TES-01012", relation: subject, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+    check:
+      - user: user:TES-01001
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: true
+          can_approve_it: false
+          can_view: true
+      - user: user:TES-01002
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: true
+          can_approve_it: false
+          can_view: true
+      - user: user:TES-01012
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: true
+          can_view: true
+      - user: user:TES-01042
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+      - user: user:TES-01003
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+      - user: user:TES-01011
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+      - user: user:TES-01013
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+  - name: "a subject who is also an approver keeps view and never approves their own case (AC-7)"
+    tuples:
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "user:TES-01042", relation: subject, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "user:TES-01001", relation: subject, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "user:TES-01002", relation: subject, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "user:TES-01012", relation: subject, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+    check:
+      - user: user:TES-01001
+        object: lifecycle_case:mover-TES-01001-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_view: true
+      - user: user:TES-01002
+        object: lifecycle_case:mover-TES-01001-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: true
+          can_view: true
+      - user: user:TES-01012
+        object: lifecycle_case:mover-TES-01001-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve_it: true
+          can_view: true
+      - user: user:TES-01002
+        object: lifecycle_case:joiner-TES-01002-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_view: true
+      - user: user:TES-01001
+        object: lifecycle_case:joiner-TES-01002-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: true
+          can_view: true
+      - user: user:TES-01012
+        object: lifecycle_case:mover-TES-01012-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: true
+      - user: user:TES-01001
+        object: lifecycle_case:mover-TES-01012-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: true
+          can_view: true
+  - name: "the HR advisor views payments cases and never approves (AC-6)"
+    tuples:
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "user:TES-01042", relation: subject, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "user:TES-01001", relation: subject, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "user:TES-01002", relation: subject, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "user:TES-01012", relation: subject, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+    check:
+      - user: user:TES-01018
+        objects: [lifecycle_case:joiner-TES-01042, lifecycle_case:mover-TES-01001-2027-03-22, lifecycle_case:joiner-TES-01002-2027-03-22, lifecycle_case:mover-TES-01012-2027-03-22]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: true
+  - name: "other teams' managers and stand ins get nothing on a payments case (AC-5)"
+    tuples:
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "user:TES-01042", relation: subject, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "user:TES-01001", relation: subject, object: "lifecycle_case:mover-TES-01001-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "user:TES-01002", relation: subject, object: "lifecycle_case:joiner-TES-01002-2027-03-22"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+      - {user: "user:TES-01012", relation: subject, object: "lifecycle_case:mover-TES-01012-2027-03-22"}
+    check:
+      - user: user:TES-01022
+        objects: [lifecycle_case:joiner-TES-01042, lifecycle_case:mover-TES-01001-2027-03-22, lifecycle_case:joiner-TES-01002-2027-03-22, lifecycle_case:mover-TES-01012-2027-03-22]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+      - user: user:TES-01007
+        objects: [lifecycle_case:joiner-TES-01042, lifecycle_case:mover-TES-01001-2027-03-22, lifecycle_case:joiner-TES-01002-2027-03-22, lifecycle_case:mover-TES-01012-2027-03-22]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+      - user: user:TES-01019
+        objects: [lifecycle_case:joiner-TES-01042, lifecycle_case:mover-TES-01001-2027-03-22, lifecycle_case:joiner-TES-01002-2027-03-22, lifecycle_case:mover-TES-01012-2027-03-22]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false

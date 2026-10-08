@@ -1,0 +1,36 @@
+# A mover from finance to payments, with both team tuples during the move (spec 0004 AC-8).
+name: mover
+model_file: model.fga
+tuple_file: .build/openfga.tuples.yaml
+tests:
+  - name: both managers see the mover's leave dates; only the new manager approves (AC-8)
+    tuples:
+      - {user: "team:payments", relation: team, object: "employee:TES-01023"}
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:mover-TES-01023-2027-03-22"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:mover-TES-01023-2027-03-22"}
+      - {user: "user:TES-01023", relation: subject, object: "lifecycle_case:mover-TES-01023-2027-03-22"}
+    check:
+      - users: [user:TES-01022, user:TES-01001]
+        object: employee:TES-01023
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: true
+          can_view_own_data: false
+      - user: user:TES-01001
+        object: lifecycle_case:mover-TES-01023-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: true
+          can_view: true
+      - users: [user:TES-01022, user:TES-01023]
+        object: lifecycle_case:mover-TES-01023-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+      - user: user:TES-01012
+        object: lifecycle_case:mover-TES-01023-2027-03-22
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve_it: true
