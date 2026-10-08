@@ -13,7 +13,12 @@ default:
 init:
     @if [ -f .env ]; then echo ".env exists, leaving it alone"; else cp .env.example .env && echo "created .env from .env.example"; fi
     uv sync --all-packages --locked
+    just keys
     uv run pre-commit install
+
+# Write local dev token keys into .env (only when any of the three is missing or empty)
+keys:
+    uv run python -m tessaro_auth.devkeys --env-file .env
 
 # Install the git pre-commit hooks (ruff, ruff format, mypy, file hygiene)
 hooks:
@@ -44,6 +49,12 @@ dev service port="":
         *)             default=18099 ;;
     esac
     port="{{ port }}"
+    # Each minter gets only its own dev signing key (spec 0003 AC-10).
+    dev_key() { grep -E "^$1=" .env | tail -n1 | cut -d= -f2- || true; }
+    case "{{ service }}" in
+        zulip-adapter) export TOKEN_SIGNING_KEY="$(dev_key DEV_ADAPTER_SIGNING_KEY)" TOKEN_SIGNING_KID=adapter-1 ;;
+        jml-worker)    export TOKEN_SIGNING_KEY="$(dev_key DEV_WORKER_SIGNING_KEY)" TOKEN_SIGNING_KID=worker-1 ;;
+    esac
     exec uv run --env-file .env --package {{ service }} uvicorn \
         "tessaro_{{ replace(service, "-", "_") }}.main:app" --reload --port "${port:-$default}"
 

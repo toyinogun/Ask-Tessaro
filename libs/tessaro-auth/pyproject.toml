@@ -8,7 +8,7 @@ dependencies = [
     "pydantic>=2.12",
     "pydantic-settings>=2.11",
     "pyjwt[crypto]>=2.10",
-    "starlette>=1.7.0",
+    "starlette>=1.0",
     "structlog>=25.4",
 ]
 

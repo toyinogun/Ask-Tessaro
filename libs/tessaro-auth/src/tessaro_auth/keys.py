@@ -43,6 +43,14 @@ def _require_kind(kid: str) -> Kind:
     return kind
 
 
+def private_key_from_base64url(text: str) -> Ed25519PrivateKey:
+    """An Ed25519 private key from the base64url of its raw 32 bytes; ValueError otherwise."""
+    raw = b64url_decode(text)
+    if len(raw) != ED25519_KEY_BYTES:
+        raise ValueError("signing key must be 32 bytes of base64url")
+    return Ed25519PrivateKey.from_private_bytes(raw)
+
+
 def public_key_bytes(key: Ed25519PublicKey) -> bytes:
     """The raw 32 byte public key."""
     return key.public_bytes(Encoding.Raw, PublicFormat.Raw)
@@ -64,10 +72,7 @@ class Signer:
     @classmethod
     def from_base64url(cls, kid: str, key_b64url: str) -> "Signer":
         """Build a signer from the base64url of a raw 32 byte Ed25519 private key."""
-        raw = b64url_decode(key_b64url)
-        if len(raw) != ED25519_KEY_BYTES:
-            raise ValueError("signing key must be 32 bytes")
-        return cls.create(kid, Ed25519PrivateKey.from_private_bytes(raw))
+        return cls.create(kid, private_key_from_base64url(key_b64url))
 
     def __repr__(self) -> str:
         return f"Signer(kid={self.kid!r}, kind={self.kind.value!r})"

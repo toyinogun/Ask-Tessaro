@@ -92,7 +92,7 @@ spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `li
 - [ ] Build it: `/develop identity token & tool contracts`
   - [x] Thin thread: mint a human token, verify it, project `get_my_leave` to an MCP tool (AC-1, AC-6, AC-15, AC-17)
   - [x] Full token: roles, mint refusals, worker tokens, signer kinds and every verify rejection in order (AC-2 to AC-8)
-  - [ ] Keys and edges: settings with fail fast key set parsing, `principal_from_headers`, `just keys` and per service dev keys (AC-9 to AC-12)
+  - [x] Keys and edges: settings with fail fast key set parsing, `principal_from_headers`, `just keys` and per service dev keys (AC-9 to AC-12)
   - [ ] Contract format: validators, registry, results and errors, snapshots, OPA tool data export and the version rule (AC-13, AC-14, AC-16, AC-18, AC-19)
 - [ ] Verify it: `/check verify identity token & tool contracts`
 - [ ] Test it: `/test identity token & tool contracts`

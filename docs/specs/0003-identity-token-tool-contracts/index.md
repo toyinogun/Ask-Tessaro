@@ -234,9 +234,9 @@ Ordered Tracer Bullet style: first one thin thread through both libraries (mint,
 2. [x] Roles and refusal: `roles.py` table and every `MintRefused` reason in order, satisfies **AC-2**, **AC-3**
 3. [x] Worker tokens and signer kinds: `issue_worker_token`, kid prefix kinds, the two key `KeySet`, satisfies **AC-4**, **AC-5**, **AC-8**
 4. [x] Every verify step in order with an injected clock, the header member check and the PyJWT exception mapping, satisfies **AC-7**, **AC-8**
-5. Settings: `TokenSigningSettings`, `TokenVerifySettings` and `check_signer_against`, satisfies **AC-9**
-6. `edge.py`: `principal_from_headers` with 401 mapping, rejection logging and request ID binding, satisfies **AC-11**, **AC-12**
-7. Dev keys: `devkeys.py`, `just keys` (run by `just init`), the `just dev` key mapping, `.env.example` updates, satisfies **AC-10**
+5. [x] Settings: `TokenSigningSettings`, `TokenVerifySettings` and `check_signer_against`, satisfies **AC-9**
+6. [x] `edge.py`: `principal_from_headers` with 401 mapping, rejection logging and request ID binding, satisfies **AC-11**, **AC-12**
+7. [x] Dev keys: `devkeys.py`, `just keys` (run by `just init`), the `just dev` key mapping, `.env.example` updates, satisfies **AC-10**
 8. Contract checks: all AC-13 validators in `contract.py` and `schema_rules.py`, `WriteSpec`, `build_registry`, and the `testing.py` helpers, satisfies **AC-13**, **AC-14**, **AC-17**
 9. Results and errors: `ToolResult`, `ToolError`, `ToolErrorCode`, `to_mcp_result`, `to_mcp_error`, satisfies **AC-16**
 10. Export and drift: `export.py`, `just contracts`, committed `schemas/get_my_leave.json` and `policy/data/tools.json`, the drift tests, satisfies **AC-18**
