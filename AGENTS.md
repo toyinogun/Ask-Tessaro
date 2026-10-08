@@ -23,6 +23,9 @@ just dev <svc>   # one service with hot reload, e.g. `just dev tool-gateway`
 just fmt         # ruff fix + format
 just check       # lint, typecheck, test (80% per package), policy, charts: what CI runs
 just new-service <name> <namespace>   # stamp a service from templates/service
+just keys        # write dev token keys into .env (also run by `just init`)
+just contracts   # regenerate tool contract snapshots and OPA tool data
+just contracts-check origin/main   # check contracts against the snapshots released on a base ref (CI, on PRs)
 just dataset --anchor <iso>   # export the fictional company dataset to dataset/build/ (gitignored)
 ```
 
@@ -47,7 +50,7 @@ Stored in `docs/specs/`, one folder per decision: `docs/specs/NNNN-title/index.m
 
 - Lint and format: ruff (config in root `pyproject.toml`). Types: mypy strict.
 - Pre commit: `.pre-commit-config.yaml` runs ruff check, ruff format, mypy (`just typecheck`), `uv lock --check` and file hygiene on every commit. `just hooks` installs, `just hooks-all` runs them on every file.
-- CI: `.github/workflows/ci.yml` runs `just check` on pushes to main, on PRs, and by hand (workflow_dispatch). Service image builds on main come later, with the cluster phase.
+- CI: `.github/workflows/ci.yml` runs `just check` on pushes to main, on PRs, and by hand (workflow_dispatch); on PRs it also runs `just contracts-check` against the base branch. Service image builds on main come later, with the cluster phase.
 
 ## Git
 

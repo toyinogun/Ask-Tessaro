@@ -53,7 +53,7 @@ Every call in Tessaro carries a short lived signed token (a JWT, a small signed 
 - **AC-12**: On success, `principal_from_headers` binds the token's `request_id` into the structlog context for the rest of the handler, so every later log line in that call carries it. When the incoming `X-Request-ID` differs, it logs `request_id_mismatch` at `warning` with the token's value and the header value cut to 64 characters. The response `X-Request-ID` header stays as the middleware set it; `tessaro-core` is unchanged.
 
 *Contract format*
-- **AC-13**: Building a `ToolContract` raises `ContractError` when: `name` does not match `[a-z][a-z0-9_]*`; `version` does not match `[1-9]\d*\.\d+`; `scope` is not a `Scope` member; `description` or `authorization` is empty; the input or output model, or any model nested in them, is not frozen with `extra="forbid"`; `write` is missing on a scope ending in `:write` or present on any other; `write.idempotency_key_param` is not a required `str` field of the input model; `identity=self` and an input field name or alias, lowercased with underscores removed, is one of `employeeid`, `employee`, `userid`, `user`, `email`, `sub`, `subject`, `personid`; or any `never_returns` name equals a property name or alias anywhere in the output JSON Schema. The walkers read only the keys inside each `properties` object (including those under `$defs`), never schema keywords such as `title` or `description`.
+- **AC-13**: Building a `ToolContract` raises `ContractError` when: `name` does not match `[a-z][a-z0-9_]*`; `version` does not match `[1-9]\d*\.\d+`; `scope` is not a `Scope` member; `description` or `authorization` is empty; the input or output model, or any model nested in them, is not frozen with `extra="forbid"`; `write` is missing on a scope ending in `:write` or present on any other; `write.idempotency_key_param` is not a required `str` field of the input model; `identity=self` and an input field name or alias (every `AliasChoices` choice and the first key of every `AliasPath`), lowercased with underscores removed, is one of `employeeid`, `employee`, `userid`, `user`, `email`, `sub`, `subject`, `personid`; or any `never_returns` name equals a property name or alias anywhere in the output JSON Schema. The walkers read only the keys inside each `properties` object (including those under `$defs`), never schema keywords such as `title` or `description`.
 - **AC-14**: `build_registry(contracts)` returns an immutable registry and raises `ContractError` on a duplicate name, or on an `undo_tool` that is not in the registry or is not itself a write tool. `ALL_CONTRACTS` is built with it at import.
 - **AC-15**: `to_mcp_tool(contract)` returns a plain dict with `name`, `description`, `inputSchema` and `outputSchema` (Pydantic generated JSON Schema), and `_meta` with `tessaro/version`, `tessaro/scope` and `tessaro/owner`, following the MCP tool shape. `tessaro-contracts` does not import the MCP SDK.
 - **AC-16**: `to_mcp_result(ToolResult(output, record_ids))` returns `structuredContent` (the output validated against the output model, dumped in JSON mode), `content` holding one text item with `model_dump_json()` of the output, and `_meta.tessaro/record_ids`. `to_mcp_error(ToolError(code, message))` returns `isError: true`, the message as one text item, and `_meta.tessaro/error_code`, where `code` is one of `unauthenticated`, `forbidden`, `not_found`, `invalid_input`, `upstream_unavailable`, `internal`.
@@ -67,7 +67,9 @@ Every call in Tessaro carries a short lived signed token (a JWT, a small signed 
   - no change with the same version passes; no change with a different version fails ("version changed without a contract change");
   - a change with the same version fails;
   - a breaking change fails whatever the version, with a message saying to publish `<name>_v2`. Breaking means a change to `scope`, `identity`, `owner` or `write`, or any input or output schema change that is not on the additive list;
-  - the additive list is: a new optional input property, a new output property, a new enum value in an output field, and changes to `description`, `authorization`, `never_returns` or schema `title`/`description` text. An additive change passes only when the major is unchanged and the minor went up.
+  - the additive list is: a new optional input property, a new output property, a new enum value in an output field, and changes to `description`, `authorization`, `never_returns` or schema `title`/`description` text. An additive change passes only when the major is unchanged and the minor went up;
+  - a snapshot with no contract in the registry (a released tool removed or renamed) fails, with the same `<name>_v2` message.
+  `assert_contract_ok` fails when its schemas folder does not exist. On a pull request, CI also runs `just contracts-check origin/<base>`, the same rule against the snapshots released on the base branch, so a snapshot edited or deleted in the change cannot hide a breaking change.
 
 ## Decision
 
@@ -102,7 +104,7 @@ libs/tessaro-contracts/src/tessaro_contracts/
   results.py     ToolResult, ToolError, ToolErrorCode, to_mcp_result(), to_mcp_error()
   mcp.py         to_mcp_tool() (plain dicts, no MCP SDK import)
   registry.py    build_registry(), ALL_CONTRACTS, contract_by_name()
-  export.py      `python -m tessaro_contracts.export`, used by `just contracts`
+  export.py      `python -m tessaro_contracts.export`, used by `just contracts` and (with `--check-against`) `just contracts-check`
   testing.py     assert_contract_ok(contract) (runs the AC-13 checks plus a snapshot comparison, for tool server test suites); assert_result_matches(contract, result)
   people/get_my_leave.py
 libs/tessaro-contracts/schemas/<name>.json   committed snapshots
@@ -199,7 +201,7 @@ policy/data/tools.json                       generated OPA tool data (feature 6 
 
 **Security model**:
 - Compliance scope: personal data under GDPR (the dataset is fictional, but the design treats it as real). Tokens carry an email and an employee ID, so they are personal data; they live 5 minutes and are never logged.
-- Minting: only the zulip-adapter holds the adapter signing key and only the jml-worker holds the worker signing key, each mounted as a Secret in its own namespace (`assistant` and `workflows`). Every other service gets only `TOKEN_VERIFY_KEYS` (public keys, not secret). On the laptop, both dev private keys sit in the shared `.env`; this breaks key separation for local development only, and `just dev` passes each service only its own key.
+- Minting: only the zulip-adapter holds the adapter signing key and only the jml-worker holds the worker signing key, each mounted as a Secret in its own namespace (`assistant` and `workflows`). Every other service gets only `TOKEN_VERIFY_KEYS` (public keys, not secret). On the laptop, both dev private keys sit in the shared `.env`; this breaks key separation for local development only. `just dev` hands each service a copy of `.env` without the `DEV_*_SIGNING_KEY` lines, and gives a minter only its own key as `TOKEN_SIGNING_KEY`.
 - The master agent and privacy proxy pass the token along opaquely and never verify or mint.
 - Revocation: OPA scopes and OpenFGA relations are evaluated live on every call, so they take effect at once. A role removed in Authentik lingers for at most one token's accepted window (360 seconds with the default TTL). This is a documented, accepted gap against FR-G5. The leaver workflow also ends Zulip sessions, so no new token is minted.
 - Replay: inside its window a token can be replayed. Reads are harmless to repeat and writes are idempotent by key (FR-T4). Because every verifier shares the audience `tessaro-tools`, a compromised tool server that receives a worker token (the People server does, for `hr:read_any`) could replay it against a write tool until it expires. Accepted for now; per server audiences, minted or exchanged at the gateway, are the later fix. `jti` is for audit correlation, not a replay cache.
@@ -267,10 +269,10 @@ Ordered Tracer Bullet style: first one thin thread through both libraries (mint,
 
 ## Follow-up
 
-- [ ] `libs/tessaro-auth/AGENTS.md` names `TOKEN_VERIFY_KEY`; it should become `TOKEN_VERIFY_KEYS` plus `TOKEN_SIGNING_KID` (for `/sync` after the build).
-- [ ] `libs/tessaro-contracts/AGENTS.md` says results carry `_meta.record_ids`; this spec fixes the key as `_meta.tessaro/record_ids` (for `/sync`).
-- [ ] The spec 0001 follow up item "Feature 4 must decide who mints workflow worker tokens" is answered here: the jml-worker, through `tessaro-auth`, with its own key in the `workflows` namespace.
-- [ ] Spec 0001 and PRD 14.3 list `TOKEN_VERIFY_KEY`; note the rename when those are next touched.
+- [x] `libs/tessaro-auth/AGENTS.md` names `TOKEN_VERIFY_KEY`; it should become `TOKEN_VERIFY_KEYS` plus `TOKEN_SIGNING_KID` (for `/sync` after the build).
+- [x] `libs/tessaro-contracts/AGENTS.md` says results carry `_meta.record_ids`; this spec fixes the key as `_meta.tessaro/record_ids` (for `/sync`).
+- [x] The spec 0001 follow up item "Feature 4 must decide who mints workflow worker tokens" is answered here: the jml-worker, through `tessaro-auth`, with its own key in the `workflows` namespace.
+- [x] Spec 0001 and PRD 14.3 list `TOKEN_VERIFY_KEY`; note the rename when those are next touched.
 - [ ] Feature 9 (identity systems) must load `employee_id` as an Authentik user attribute so the adapter can fill `sub`.
 - [ ] Feature 6 (tool policy) must use the `Role` names from `tessaro_auth.claims` as `role_scopes` keys and read `policy/data/tools.json` rather than writing tool scopes by hand.
 - [ ] Feature 12 (Zulip adapter) decides the exact user facing reply when `MintRefused` is raised (suggested: "I can't verify your account. Please contact IT.").

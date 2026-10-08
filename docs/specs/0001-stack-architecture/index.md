@@ -60,8 +60,8 @@ Reasoning, options and evidence: see [rationale.md](rationale.md).
 | Contract | Choice |
 |---|---|
 | Correlation | `X-Request-ID` is read or created at every entry point, forwarded on every outbound call, and bound into structlog context vars. It equals the token's request ID claim when one is present |
-| Audit line | A typed model with the FR-G4 fields: `time`, `request_id`, `caller`, `on_behalf_of`, `roles`, `tool`, `record_ids`, `result`, `latency_ms`, plus `audit=true`. Tool results report the record IDs they touched in the MCP result `_meta.record_ids`, so the gateway can log them |
-| Token keys | Env names fixed now: `TOKEN_SIGNING_KEY` (only where tokens are minted) and `TOKEN_VERIFY_KEY` (gateway and every tool server). `just init` writes a dev keypair to `.env`. The algorithm and claims are decided in the identity token spec (feature 4) |
+| Audit line | A typed model with the FR-G4 fields: `time`, `request_id`, `caller`, `on_behalf_of`, `roles`, `tool`, `record_ids`, `result`, `latency_ms`, plus `audit=true`. Tool results report the record IDs they touched in the MCP result `_meta["tessaro/record_ids"]` (key fixed in spec 0003 AC-16), so the gateway can log them |
+| Token keys | `TOKEN_SIGNING_KEY` and `TOKEN_SIGNING_KID` only where tokens are minted (zulip-adapter for human tokens, jml-worker for workflow worker tokens); `TOKEN_VERIFY_KEYS`, a JWK set of public keys, in the gateway and every tool server. `just keys` (run by `just init`) writes two dev Ed25519 pairs to `.env` as `DEV_ADAPTER_SIGNING_KEY` and `DEV_WORKER_SIGNING_KEY` plus `TOKEN_VERIFY_KEYS`, and `just dev` maps each pair onto its one minter. Algorithm, claims and key rules: [spec 0003](../0003-identity-token-tool-contracts/index.md) |
 
 ### Repo layout
 
@@ -108,7 +108,7 @@ Each service and lib uses the src layout (`src/tessaro_<name>/`, `tests/`). The 
 |---|---|
 | Dependencies | `compose.yaml` runs Redis, OpenFGA (in memory store), OPA, the Temporal dev server (with its UI) and the Presidio analyzer |
 | Our services | `uv run` with hot reload, started by `just` recipes; settings from a gitignored `.env` |
-| Secrets | `.env.example` committed; `just init` creates `.env` and generates a dev only token signing key. No real secret is in git before the cluster phase |
+| Secrets | `.env.example` committed; `just init` creates `.env` and `just keys` generates dev only token signing keys (one per issuer). No real secret is in git before the cluster phase |
 | Team systems | In memory fakes from `tessaro-clients`, seeded from `dataset/` |
 
 ### Packaging and delivery (cluster phase)
@@ -152,7 +152,7 @@ On every PR: `uv sync --locked`, ruff check and format check, mypy strict, pytes
 
 - [x] The repo is not yet under git. Run `git init`, create the public GitHub repo, and push before CI can run.
 - [ ] Before pinning the MCP SDK, run a short spike: one tool server, the gateway passing `tools/list` and `tools/call` through, and the agent's `langchain-mcp-adapters` client, including the `Authorization` header forwarded on each call. If `mcp` 2.x or the adapters do not fit, pin `mcp<2` (v2 and the adapter versions were unverified today; reports differ on whether FastMCP is still built in).
-- [ ] Feature 4 must decide who mints workflow worker tokens (recommended: a `tessaro-auth` function, with its signing key mounted only in the `workflows` namespace).
+- [x] Feature 4 must decide who mints workflow worker tokens: decided in [spec 0003](../0003-identity-token-tool-contracts/index.md), `tessaro-auth` `issue_worker_token` with its own `worker-*` key, given only to the jml-worker.
 - [ ] Feature 8 decides how the proxy's internet egress to `api.deepseek.com` is allowed (CIDR or a CNI policy), and the cluster baseline adds the Redis and gateway paths to its allowed path table.
 - [ ] Optional MCP servers worth connecting once the systems run on the cluster: Langfuse (official), Argo CD (`argoproj-labs/mcp-for-argocd`), OpenFGA (`evansims/openfga-mcp`, community), and a Grafana/Loki server. Connecting one is a step in your Claude Code MCP settings.
 - [ ] Confirm `temporalio` and Presidio/spaCy wheels install on Python 3.13 at scaffold time (Python version support was unverified).

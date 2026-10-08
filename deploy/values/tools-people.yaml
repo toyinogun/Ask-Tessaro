@@ -3,7 +3,7 @@ namespace: tools-people
 image:
   repository: ghcr.io/REPLACE_OWNER/tessaro-tools-people
   tag: scaffold # CI sets the git commit SHA
-existingSecret: tools-people-secrets # SYSTEM_API_TOKEN, TOKEN_VERIFY_KEY
+existingSecret: tools-people-secrets # SYSTEM_API_TOKEN, TOKEN_VERIFY_KEYS
 env:
   SYSTEM_URL: http://frappe.hr-finance.svc.cluster.local:8080
   OPENFGA_API_URL: http://openfga.platform.svc.cluster.local:8080

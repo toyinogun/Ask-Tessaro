@@ -3,7 +3,7 @@ namespace: assistant
 image:
   repository: ghcr.io/REPLACE_OWNER/tessaro-tool-gateway
   tag: scaffold # CI sets the git commit SHA
-existingSecret: tool-gateway-secrets # TOKEN_VERIFY_KEY
+existingSecret: tool-gateway-secrets # TOKEN_VERIFY_KEYS
 env:
   OPA_URL: http://localhost:8181
   GATEWAY_UPSTREAMS: http://tools-people.tools-people.svc.cluster.local:8080/mcp
