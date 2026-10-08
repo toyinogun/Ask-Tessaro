@@ -1,5 +1,7 @@
 """Token settings, mixed into a service's settings class. Both fail fast at startup."""
 
+from functools import cached_property
+
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,9 +24,9 @@ class TokenVerifySettings(BaseSettings):
         parse_jwks(value)
         return value
 
-    @property
+    @cached_property
     def keyset(self) -> KeySet:
-        """The parsed, validated key set."""
+        """The parsed, validated key set, built once per settings object."""
         return parse_jwks(self.token_verify_keys)
 
 
@@ -50,9 +52,9 @@ class TokenSigningSettings(BaseSettings):
             raise ValueError("TOKEN_SIGNING_KID must match (adapter|worker)-<n>")
         return value
 
-    @property
+    @cached_property
     def signer(self) -> Signer:
-        """The signer built from the key and kid."""
+        """The signer built from the key and kid, once per settings object."""
         return Signer.from_base64url(
             self.token_signing_kid, self.token_signing_key.get_secret_value()
         )

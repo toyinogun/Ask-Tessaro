@@ -4,7 +4,7 @@ from dataclasses import replace
 from typing import Annotated, Any
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field
 
 from tessaro_contracts.contract import ContractError, IdentityMode, ToolContract, WriteSpec
 from tessaro_contracts.people.get_my_leave import (
@@ -214,6 +214,30 @@ def test_self_tools_refuse_identity_inputs(name: str, alias: str | None) -> None
     assert contract(identity=IdentityMode.SUBJECT, input_model=model)
 
 
+@pytest.mark.parametrize(
+    "validation_alias",
+    [
+        AliasChoices("q", "employee_id"),
+        AliasChoices("q", AliasPath("person_id", 0)),
+        AliasPath("user", "name"),
+    ],
+)
+def test_self_tools_refuse_identity_alias_choices_and_paths(
+    validation_alias: AliasChoices | AliasPath,
+) -> None:
+    model = type(
+        "ChoiceInput",
+        (BaseModel,),
+        {
+            "model_config": CLOSED,
+            "__annotations__": {"target": str},
+            "target": Field(validation_alias=validation_alias),
+        },
+    )
+    with pytest.raises(ContractError, match="self tool"):
+        contract(input_model=model)
+
+
 class NestedTarget(BaseModel):
     model_config = CLOSED
     user: str
@@ -259,6 +283,24 @@ def test_never_returns_finds_nested_and_aliased_names() -> None:
         contract(output_model=Outer, never_returns=("reason",))
     with pytest.raises(ContractError, match="never return reason"):
         contract(output_model=AliasedOut, never_returns=("reason",))
+
+
+class Branch(BaseModel):
+    model_config = CLOSED
+    label: str
+    children: tuple["Branch", ...] = ()
+
+
+class LeakyBranch(BaseModel):
+    model_config = CLOSED
+    children: tuple["LeakyBranch", ...] = ()
+    detail: Inner | None = None
+
+
+def test_self_referencing_models_are_checked_and_terminate() -> None:
+    assert contract(output_model=Branch, never_returns=("reason",))
+    with pytest.raises(ContractError, match="never return reason"):
+        contract(output_model=LeakyBranch, never_returns=("reason",))
 
 
 def test_never_returns_ignores_schema_keywords() -> None:

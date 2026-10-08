@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final
 
-from pydantic import BaseModel
+from pydantic import AliasChoices, AliasPath, BaseModel
 
 _LITERAL_KEYWORDS: Final = frozenset({"default", "examples", "const", "enum"})
 """Keywords whose values are data, not schemas: never walked for property names."""
@@ -59,12 +59,21 @@ def all_names(model: type[BaseModel]) -> frozenset[str]:
     for nested in nested_models(model):
         for field_name, field in nested.model_fields.items():
             names.add(field_name)
-            names.update(
-                alias
-                for alias in (field.alias, field.validation_alias, field.serialization_alias)
-                if isinstance(alias, str)
-            )
+            for alias in (field.alias, field.validation_alias, field.serialization_alias):
+                names.update(_alias_names(alias))
     return frozenset(names)
+
+
+def _alias_names(alias: str | AliasPath | AliasChoices | None) -> Iterator[str]:
+    """Every input name an alias accepts: each choice, and the first key of each path."""
+    if isinstance(alias, str):
+        yield alias
+    elif isinstance(alias, AliasPath):
+        if alias.path and isinstance(alias.path[0], str):
+            yield alias.path[0]
+    elif isinstance(alias, AliasChoices):
+        for choice in alias.choices:
+            yield from _alias_names(choice)
 
 
 def nested_models(model: type[BaseModel]) -> tuple[type[BaseModel], ...]:

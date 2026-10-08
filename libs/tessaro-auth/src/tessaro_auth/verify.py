@@ -29,6 +29,9 @@ from tessaro_auth.claims import (
 from tessaro_auth.issue import ALGORITHM
 from tessaro_auth.keys import KeyEntry, KeySet, b64url_decode
 
+MAX_TOKEN_LENGTH: Final = 8192
+"""Longer tokens are malformed before any parsing; ours are well under 1 KiB."""
+
 _ALLOWED_HEADER_MEMBERS: Final = frozenset({"alg", "kid", "typ"})
 _ROLE_VALUES: Final = frozenset(role.value for role in Role)
 
@@ -75,7 +78,8 @@ def _fail(reason: InvalidReason) -> TokenInvalid:
 def _json_object(segment: str) -> dict[str, object]:
     try:
         value = json.loads(b64url_decode(segment))
-    except (ValueError, UnicodeDecodeError) as exc:
+    except (ValueError, UnicodeDecodeError, RecursionError) as exc:
+        # RecursionError: deeply nested JSON is attacker controlled and read before the signature.
         raise _fail(InvalidReason.MALFORMED) from exc
     if not isinstance(value, dict):
         raise _fail(InvalidReason.MALFORMED)
@@ -84,6 +88,8 @@ def _json_object(segment: str) -> dict[str, object]:
 
 def _check_header(token: str) -> dict[str, object]:
     """Step 1: three base64url parts, JSON objects, only `alg`, `kid`, `typ` in the header."""
+    if len(token) > MAX_TOKEN_LENGTH:
+        raise _fail(InvalidReason.MALFORMED)
     parts = token.split(".")
     if len(parts) != 3 or not parts[0] or not parts[1]:
         raise _fail(InvalidReason.MALFORMED)

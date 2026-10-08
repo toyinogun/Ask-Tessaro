@@ -149,6 +149,14 @@ def test_verify_settings_parse_the_keyset(monkeypatch: pytest.MonkeyPatch, keyse
     assert set(settings.keyset) == {"adapter-1", "worker-1"}
 
 
+def test_verify_settings_parse_the_keyset_once(
+    monkeypatch: pytest.MonkeyPatch, keyset: KeySet
+) -> None:
+    monkeypatch.setenv("TOKEN_VERIFY_KEYS", keyset.to_jwks_json())
+    settings = TokenVerifySettings()
+    assert settings.keyset is settings.keyset
+
+
 @pytest.mark.parametrize("value", [None, "", "{}", '{"keys": []}'])
 def test_verify_settings_fail_fast(monkeypatch: pytest.MonkeyPatch, value: str | None) -> None:
     if value is None:
@@ -167,6 +175,7 @@ def test_signing_settings(monkeypatch: pytest.MonkeyPatch, worker_key: Ed25519Pr
     assert settings.token_ttl_seconds == 300
     assert settings.signer.kind is Kind.WORKFLOW_WORKER
     assert settings.signer.kid == "worker-1"
+    assert settings.signer is settings.signer
     assert "token_signing_key=SecretStr('**********')" in repr(settings)
 
 

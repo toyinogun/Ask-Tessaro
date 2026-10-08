@@ -14,8 +14,13 @@ PACKAGE_SCHEMAS: Final = Path(__file__).resolve().parents[2] / "schemas"
 
 
 def assert_contract_ok(contract: ToolContract, schemas_dir: Path = PACKAGE_SCHEMAS) -> None:
-    """Run the AC-13 checks, then the version rule against the committed snapshot if any."""
+    """Run the AC-13 checks, then the version rule against the committed snapshot if any.
+
+    A missing `schemas_dir` fails: a wrong path must never turn the version rule off.
+    """
     validate_contract(contract)
+    if not schemas_dir.is_dir():
+        raise AssertionError(f"{contract.name}: no schemas folder at {schemas_dir}")
     snapshot = schemas_dir / f"{contract.name}.json"
     if not snapshot.exists():
         return
