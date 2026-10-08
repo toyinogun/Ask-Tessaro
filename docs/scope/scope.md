@@ -94,10 +94,10 @@ spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `li
   - [x] Full token: roles, mint refusals, worker tokens, signer kinds and every verify rejection in order (AC-2 to AC-8)
   - [x] Keys and edges: settings with fail fast key set parsing, `principal_from_headers`, `just keys` and per service dev keys (AC-9 to AC-12)
   - [x] Contract format: validators, registry, results and errors, snapshots, OPA tool data export and the version rule (AC-13, AC-14, AC-16, AC-18, AC-19)
-- [ ] Verify it: `/check verify identity token & tool contracts`
-- [ ] Test it: `/test identity token & tool contracts`
-- [ ] Review it (fresh model): `/check review identity token & tool contracts`
-- [ ] Document it: `/document identity token & tool contracts`
+- [x] Verify it: `/check verify identity token & tool contracts`
+- [x] Test it: `/test identity token & tool contracts`
+- [x] Review it (fresh model): `/check review identity token & tool contracts`
+- [x] Document it: `/document identity token & tool contracts`
 
 ### 5. Record access model · needs a decision · GA
 The OpenFGA model from PRD 8.3 (owner, team, manager, time boxed stand in, HR advisor, lifecycle case) with CLI test files. Decides whose records anyone may see or approve. No cluster needed.
