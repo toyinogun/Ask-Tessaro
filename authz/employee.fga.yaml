@@ -1,0 +1,203 @@
+# Employee records: self access, managers, HR advisors and cross team attempts (spec 0004).
+# Tuples come from the dataset export at anchor 2027-03-15T10:00+01:00 (`just authz-test`).
+name: employee records
+model_file: model.fga
+tuple_file: .build/openfga.tuples.yaml
+tests:
+  - name: every seeded employee sees their own record (AC-2)
+    check:
+      - user: user:TES-01000
+        object: employee:TES-01000
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01001
+        object: employee:TES-01001
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01002
+        object: employee:TES-01002
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01003
+        object: employee:TES-01003
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01004
+        object: employee:TES-01004
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01005
+        object: employee:TES-01005
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01006
+        object: employee:TES-01006
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01007
+        object: employee:TES-01007
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01008
+        object: employee:TES-01008
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01009
+        object: employee:TES-01009
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01010
+        object: employee:TES-01010
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01011
+        object: employee:TES-01011
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01012
+        object: employee:TES-01012
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01013
+        object: employee:TES-01013
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01014
+        object: employee:TES-01014
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01015
+        object: employee:TES-01015
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01016
+        object: employee:TES-01016
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01017
+        object: employee:TES-01017
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01018
+        object: employee:TES-01018
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01019
+        object: employee:TES-01019
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01020
+        object: employee:TES-01020
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01021
+        object: employee:TES-01021
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01022
+        object: employee:TES-01022
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01023
+        object: employee:TES-01023
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01024
+        object: employee:TES-01024
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01025
+        object: employee:TES-01025
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01026
+        object: employee:TES-01026
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01027
+        object: employee:TES-01027
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01028
+        object: employee:TES-01028
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01029
+        object: employee:TES-01029
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+      - user: user:TES-01030
+        object: employee:TES-01030
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+
+  - name: the persona is refused a teammate's record (AC-2, demo step 1)
+    check:
+      - user: user:TES-01003
+        object: employee:TES-01004
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: false
+          can_view_leave_dates: false

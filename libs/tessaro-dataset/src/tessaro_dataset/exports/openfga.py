@@ -1,4 +1,4 @@
-"""OpenFGA: relationship tuples for owners, teams, managers, HR advisors and stand ins.
+"""OpenFGA: tuples for owners, teams, managers, HR advisors, stand ins and IT approvers.
 
 No `lifecycle_case` tuples: the workflows write those.
 """
@@ -8,6 +8,7 @@ from datetime import datetime
 from tessaro_dataset.dataset import Dataset
 from tessaro_dataset.exports.base import ExportRecord
 from tessaro_dataset.models import StandIn
+from tessaro_dataset.registry import FGA_ORG
 
 STAND_IN_CONDITION = "within_window"
 
@@ -64,10 +65,14 @@ def _stand_in(s: StandIn) -> FgaTuple:
 
 
 def export_openfga(dataset: Dataset, include_demo_inputs: bool = False) -> OpenFgaExport:
-    """Owner, employee team, member, manager, HR advisor and stand in tuples."""
+    """Owner, employee team, member, manager, HR advisor, stand in and org IT approver tuples."""
     tuples: list[FgaTuple] = []
     for e in dataset.seed_employees(include_demo_inputs=include_demo_inputs):
         tuples.append(FgaTuple(user=f"user:{e.id}", relation="owner", object=f"employee:{e.id}"))
+        if e.it_approver:
+            tuples.append(
+                FgaTuple(user=f"user:{e.id}", relation="it_approver", object=f"org:{FGA_ORG}")
+            )
         if e.team_id:
             tuples.append(
                 FgaTuple(user=f"team:{e.team_id}", relation="team", object=f"employee:{e.id}")
