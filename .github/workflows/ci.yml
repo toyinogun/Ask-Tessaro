@@ -55,3 +55,13 @@ jobs:
 
       - name: Run every check
         run: just check
+
+      # The drift tests compare against snapshots in this checkout, which the change itself can
+      # edit; this compares against the snapshots released on the base branch (spec 0003 AC-19).
+      - name: Check contracts against the base branch
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          just contracts-check "origin/$BASE_REF"

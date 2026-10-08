@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from tessaro_auth.claims import HumanPrincipal, Role, WorkerPrincipal
 from tessaro_auth.issue import DirectoryIdentity, issue_human_token, issue_worker_token
 from tessaro_auth.keys import KeySet, Signer, b64url_encode, public_key_bytes
-from tessaro_auth.verify import InvalidReason, TokenInvalid, verify
+from tessaro_auth.verify import MAX_TOKEN_LENGTH, InvalidReason, TokenInvalid, verify
 
 NOW = datetime(2026, 10, 8, 9, 30, tzinfo=UTC)
 IAT = int(NOW.timestamp())
@@ -169,6 +169,39 @@ def test_adapter_key_claiming_the_worker_kid_fails_the_signature(
     ],
 )
 def test_malformed_structure(token: str, keyset: KeySet) -> None:
+    assert reason_of(token, keyset) is InvalidReason.MALFORMED
+
+
+def _nested(depth: int) -> bytes:
+    return b'{"x":' + b"[" * depth + b"]" * depth + b"}"
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        b64url_encode(_nested(100_000)) + ".e30.sig",
+        "e30." + b64url_encode(_nested(100_000)) + ".sig",
+    ],
+)
+def test_deeply_nested_json_is_malformed_not_a_crash(token: str, keyset: KeySet) -> None:
+    assert reason_of(token, keyset) is InvalidReason.MALFORMED
+
+
+def test_nesting_past_the_recursion_limit_is_malformed(
+    keyset: KeySet, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    token = b64url_encode(_nested(200)) + ".e30.sig"
+    assert len(token) <= MAX_TOKEN_LENGTH
+
+    def deep_loads(_: object) -> object:
+        raise RecursionError
+
+    monkeypatch.setattr(json, "loads", deep_loads)
+    assert reason_of(token, keyset) is InvalidReason.MALFORMED
+
+
+def test_token_longer_than_the_cap_is_malformed(keyset: KeySet) -> None:
+    token = raw_token({"alg": "EdDSA", "kid": "adapter-1"}, {"pad": "x" * MAX_TOKEN_LENGTH})
     assert reason_of(token, keyset) is InvalidReason.MALFORMED
 
 

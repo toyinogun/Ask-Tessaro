@@ -49,13 +49,17 @@ dev service port="":
         *)             default=18099 ;;
     esac
     port="{{ port }}"
-    # Each minter gets only its own dev signing key (spec 0003 AC-10).
+    # Each minter gets only its own dev signing key, and no service sees the DEV_*_SIGNING_KEY
+    # lines themselves: the service reads a copy of .env without them (spec 0003 AC-10).
     dev_key() { grep -E "^$1=" .env | tail -n1 | cut -d= -f2- || true; }
     case "{{ service }}" in
         zulip-adapter) export TOKEN_SIGNING_KEY="$(dev_key DEV_ADAPTER_SIGNING_KEY)" TOKEN_SIGNING_KID=adapter-1 ;;
         jml-worker)    export TOKEN_SIGNING_KEY="$(dev_key DEV_WORKER_SIGNING_KEY)" TOKEN_SIGNING_KID=worker-1 ;;
     esac
-    exec uv run --env-file .env --package {{ service }} uvicorn \
+    env_file="$(mktemp)"
+    trap 'rm -f "$env_file"' EXIT
+    grep -v -E '^DEV_(ADAPTER|WORKER)_SIGNING_KEY=' .env > "$env_file" || true
+    uv run --env-file "$env_file" --package {{ service }} uvicorn \
         "tessaro_{{ replace(service, "-", "_") }}.main:app" --reload --port "${port:-$default}"
 
 # Export the fictional company dataset to dataset/build/ (gitignored), e.g. `just dataset --anchor 2026-10-07T10:00+02:00`
@@ -65,6 +69,18 @@ dataset *args:
 # Write contract snapshots (libs/tessaro-contracts/schemas/) and OPA tool data (policy/data/tools.json)
 contracts:
     uv run python -m tessaro_contracts.export
+
+# Check the contracts against the snapshots released on a base ref (CI runs this on PRs), e.g. `just contracts-check origin/main`
+contracts-check base="origin/main":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git rev-parse --verify --quiet "{{ base }}^{commit}" > /dev/null || { echo "unknown base ref {{ base }}" >&2; exit 1; }
+    base_dir="$(mktemp -d)"
+    trap 'rm -rf "$base_dir"' EXIT
+    if git cat-file -e "{{ base }}:libs/tessaro-contracts/schemas" 2> /dev/null; then
+        git archive "{{ base }}" libs/tessaro-contracts/schemas | tar -x -C "$base_dir"
+    fi
+    uv run python -m tessaro_contracts.export --check-against "$base_dir/libs/tessaro-contracts/schemas"
 
 # Ruff lint and format check
 lint:

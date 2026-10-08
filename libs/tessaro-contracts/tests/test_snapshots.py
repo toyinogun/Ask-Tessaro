@@ -16,6 +16,7 @@ from tessaro_contracts.export import (
     export,
     generated_files,
     main,
+    removed_contract_errors,
     render_json,
     repo_root,
 )
@@ -104,6 +105,59 @@ def test_released_contracts_keep_the_version_rule(name: str) -> None:
 
 def test_a_contract_without_a_snapshot_passes(tmp_path: Path) -> None:
     assert_contract_ok(GET_MY_LEAVE, tmp_path)
+
+
+def test_a_missing_schemas_folder_fails_loudly(tmp_path: Path) -> None:
+    with pytest.raises(AssertionError, match="no schemas folder"):
+        assert_contract_ok(GET_MY_LEAVE, tmp_path / "missing")
+
+
+def test_every_committed_snapshot_has_a_contract() -> None:
+    assert removed_contract_errors(ROOT / SCHEMAS_DIR, ALL_CONTRACTS) == []
+
+
+def test_removing_a_released_contract_is_refused(tmp_path: Path) -> None:
+    assert export(tmp_path, ALL_CONTRACTS) == []
+    (tmp_path / TOOLS_DATA).unlink()
+
+    errors = export(tmp_path, {})
+
+    assert errors == [
+        "get_my_leave: a released tool cannot be removed or renamed; "
+        "keep it, and publish a new tool such as get_my_leave_v2 beside it"
+    ]
+    assert not (tmp_path / TOOLS_DATA).exists()
+
+
+def test_check_against_base_snapshots(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    base = tmp_path / "base"
+    base.mkdir()
+    (base / "get_my_leave.json").write_text(render_json(to_mcp_tool(GET_MY_LEAVE)), "utf-8")
+    assert main(["--root", str(tmp_path), "--check-against", str(base)]) == 0
+    assert "match the base snapshots" in capsys.readouterr().out
+    assert not (tmp_path / TOOLS_DATA).exists()
+
+
+def test_check_against_base_catches_a_hand_edited_snapshot(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    base = tmp_path / "base"
+    base.mkdir()
+    old = to_mcp_tool(GET_MY_LEAVE)
+    old["description"] = "The old wording."
+    (base / "get_my_leave.json").write_text(render_json(old), "utf-8")
+    (base / "dropped_tool.json").write_text(render_json(old | {"name": "dropped_tool"}), "utf-8")
+    assert main(["--root", str(tmp_path), "--check-against", str(base)]) == 1
+    err = capsys.readouterr().err
+    assert "without a version change" in err
+    assert "dropped_tool: a released tool cannot be removed" in err
+
+
+def test_check_against_a_missing_base_folder_passes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["--root", str(tmp_path), "--check-against", str(tmp_path / "none")]) == 0
+    assert "no base snapshots" in capsys.readouterr().out
 
 
 def test_assert_contract_ok_raises_on_a_rule_break(tmp_path: Path) -> None:
