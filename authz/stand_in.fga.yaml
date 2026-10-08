@@ -1,0 +1,93 @@
+# Time boxed stand in access (spec 0004 AC-4, AC-5).
+# Seed window for TES-01002 on payments: 2027-03-13T08:00:00Z to 2027-03-15T09:15:00Z (half open).
+# Seed window for TES-01007 on workplace: 2027-03-10T08:00:00Z to 2027-03-25T08:00:00Z.
+name: stand in window
+model_file: model.fga
+tuple_file: .build/openfga.tuples.yaml
+tests:
+  - name: the payments stand in acts only inside its window (AC-4)
+    tuples:
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "user:TES-01042", relation: subject, object: "lifecycle_case:joiner-TES-01042"}
+    check:
+      - user: user:TES-01002
+        objects: [employee:TES-01001, employee:TES-01003, employee:TES-01010]
+        context: {current_time: "2027-03-13T08:00:00Z"}
+        assertions:
+          can_view_leave_dates: true
+      - user: user:TES-01002
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-13T08:00:00Z"}
+        assertions:
+          can_approve: true
+          can_view: true
+      - user: user:TES-01002
+        objects: [employee:TES-01001, employee:TES-01003, employee:TES-01010]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: true
+      - user: user:TES-01002
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: true
+          can_view: true
+      - user: user:TES-01002
+        objects: [employee:TES-01001, employee:TES-01003, employee:TES-01010]
+        context: {current_time: "2027-03-13T07:59:59Z"}
+        assertions:
+          can_view_leave_dates: false
+      - user: user:TES-01002
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-13T07:59:59Z"}
+        assertions:
+          can_approve: false
+          can_view: false
+      - user: user:TES-01002
+        objects: [employee:TES-01001, employee:TES-01003, employee:TES-01010]
+        context: {current_time: "2027-03-15T09:15:00Z"}
+        assertions:
+          can_view_leave_dates: false
+      - user: user:TES-01002
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:15:00Z"}
+        assertions:
+          can_approve: false
+          can_view: false
+      - user: user:TES-01002
+        object: employee:TES-01002
+        context: {current_time: "2027-03-15T09:15:00Z"}
+        assertions:
+          can_view_own_data: true
+          can_view_leave_dates: true
+
+  - name: the workplace stand in sits in payments but is refused every payments teammate (AC-5)
+    tuples:
+      - {user: "org:tessaro", relation: org, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "team:payments", relation: team, object: "lifecycle_case:joiner-TES-01042"}
+      - {user: "user:TES-01042", relation: subject, object: "lifecycle_case:joiner-TES-01042"}
+    check:
+      - user: user:TES-01007
+        objects: [employee:TES-01027, employee:TES-01028, employee:TES-01029, employee:TES-01030, employee:TES-01007]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: true
+      - user: user:TES-01007
+        objects: [employee:TES-01001, employee:TES-01002, employee:TES-01003, employee:TES-01004, employee:TES-01005, employee:TES-01006, employee:TES-01008, employee:TES-01009, employee:TES-01010, employee:TES-01011, employee:TES-01017, employee:TES-01022, employee:TES-01000]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: false
+          can_view_own_data: false
+      - user: user:TES-01007
+        object: lifecycle_case:joiner-TES-01042
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_approve: false
+          can_approve_it: false
+          can_view: false
+      - user: user:TES-01007
+        objects: [employee:TES-01027, employee:TES-01030]
+        context: {current_time: "2027-03-25T08:00:00Z"}
+        assertions:
+          can_view_leave_dates: false

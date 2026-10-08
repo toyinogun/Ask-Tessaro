@@ -107,7 +107,7 @@ spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `li
 - [ ] Build it: `/develop record access model`
   - [x] Thin thread: model file, org IT approver export, registry check against the model, `just authz-test` with self access tests (AC-1, AC-2, AC-9, AC-10)
   - [x] Team access: managers, HR advisors and cross team checks (AC-3, AC-5, AC-6)
-  - [ ] Stand in window: start, inside, end and the second stand in (AC-4, AC-5)
+  - [x] Stand in window: start, inside, end and the second stand in (AC-4, AC-5)
   - [ ] Lifecycle cases: fixture cases, separation of duties and the mover (AC-7, AC-8)
   - [ ] Local load: `just authz-load` and the `.env.example` lines (AC-11)
 - [ ] Verify it: `/check verify record access model`
