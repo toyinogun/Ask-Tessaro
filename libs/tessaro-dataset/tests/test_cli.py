@@ -112,3 +112,36 @@ def test_standin_prints_a_fresh_window() -> None:
     end = datetime.fromisoformat(row["condition"]["context"]["valid_until"])
     assert end - start == timedelta(minutes=5)
     assert before <= start <= before + timedelta(minutes=1)
+
+
+def test_anchor_flag_wins_over_the_env_setting(monkeypatch: pytest.MonkeyPatch) -> None:
+    """covers: AC-3 (--anchor takes precedence over TESSARO_DATASET_ANCHOR)"""
+    monkeypatch.setenv("TESSARO_DATASET_ANCHOR", "2026-10-07T08:00:00+00:00")
+    code, out, _ = run("validate", "--root", str(REPO_ROOT), "--anchor", "2026-10-09T11:00+02:00")
+    assert code == 0
+    assert "2026-10-09T11:00:00+02:00" in out
+
+
+def test_env_stand_in_minutes_moves_the_window_end(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """covers: AC-8, AC-13 (TESSARO_DATASET_STAND_IN_MINUTES sets valid_until)"""
+    monkeypatch.setenv("TESSARO_DATASET_STAND_IN_MINUTES", "30")
+    out_dir = tmp_path / "build"
+    code, _, _ = run("export", "--root", str(REPO_ROOT), "--anchor", ANCHOR, "--out", str(out_dir))
+    assert code == 0
+    tuples = yaml.safe_load((out_dir / "openfga.tuples.yaml").read_text())
+    pieter = next(
+        t for t in tuples if t["relation"] == "stand_in" and t["object"] == "team:payments"
+    )
+    assert pieter["condition"]["context"]["valid_until"] == "2026-10-07T10:30:00+02:00"
+
+
+def test_export_without_the_flag_keeps_joiners_in_the_directory_only(tmp_path: Path) -> None:
+    """covers: AC-7, AC-13 (seed export leaves out demo inputs; directory always has them)"""
+    out_dir = tmp_path / "build"
+    code, _, _ = run("export", "--root", str(REPO_ROOT), "--anchor", ANCHOR, "--out", str(out_dir))
+    assert code == 0
+    assert "TES-01042" not in (out_dir / "frappe_hr.json").read_text()
+    assert "TES-01042" not in (out_dir / "openfga.tuples.yaml").read_text()
+    assert "TES-01042" in (out_dir / "directory.json").read_text()

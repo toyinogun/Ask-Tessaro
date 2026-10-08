@@ -23,6 +23,7 @@ from tessaro_dataset import (
     load_dataset,
     render_exports,
 )
+from tessaro_dataset.derive import iban_is_valid
 from tessaro_dataset.exports.openfga import STAND_IN_CONDITION
 from tessaro_dataset.models import LeaveApplication, sensitive_fields
 from tessaro_dataset.registry import ALLOWED_RELATIONS, CONDITIONED_RELATIONS
@@ -164,3 +165,97 @@ def test_exporters_do_not_change_the_dataset(dataset: Dataset) -> None:
     before = dataset.employees
     export_all(dataset, include_demo_inputs=True)
     assert dataset.employees is before
+
+
+SORT_KEYS: dict[tuple[str, str], tuple[str, ...]] = {
+    ("frappe_hr", "departments"): ("department_id",),
+    ("frappe_hr", "employees"): ("employee",),
+    ("frappe_hr", "leave_allocations"): ("employee", "from_date"),
+    ("frappe_hr", "leave_applications"): ("name",),
+    ("erpnext", "expense_claims"): ("name",),
+    ("zammad", "users"): ("employee_id",),
+    ("zammad", "groups"): ("name",),
+    ("zammad", "tickets"): ("number",),
+    ("snipeit", "users"): ("employee_num",),
+    ("snipeit", "assets"): ("asset_tag",),
+    ("seatsurfing", "locations"): ("id",),
+    ("seatsurfing", "spaces"): ("id",),
+    ("seatsurfing", "bookings"): ("id",),
+    ("bookstack", "books"): ("slug",),
+    ("bookstack", "chapters"): ("slug",),
+    ("bookstack", "pages"): ("slug",),
+    ("authentik", "users"): ("employee_id",),
+    ("authentik", "groups"): ("name",),
+    ("zulip", "users"): ("email",),
+    ("zulip", "channels"): ("name",),
+    ("zulip", "subscriptions"): ("channel", "email"),
+    ("openfga", "tuples"): ("object", "relation", "user"),
+    ("directory", "entries"): ("employee_id",),
+    ("demo_actions", "actions"): ("order",),
+}
+
+
+def test_every_exported_list_is_sorted_by_its_key(dataset: Dataset) -> None:
+    """covers: AC-12 (stable record order)"""
+    seen: set[tuple[str, str]] = set()
+    for name, export in export_all(dataset, include_demo_inputs=True).items():
+        for field, rows in export.model_dump(mode="json").items():
+            if not (isinstance(rows, list) and rows and isinstance(rows[0], dict)):
+                continue
+            keys = SORT_KEYS[(name, field)]
+            values = [tuple(str(row[k]) for k in keys) for row in rows]
+            assert values == sorted(values), f"{name}.{field}"
+            seen.add((name, field))
+    assert seen == set(SORT_KEYS)
+
+
+def test_authentik_groups_follow_the_derivation_rules(dataset: Dataset) -> None:
+    """covers: AC-9 (groups are derived for every person, never written by hand)"""
+    users = {u.employee_id: set(u.groups) for u in export_authentik(dataset, True).users}
+    managers = {t.manager_id for t in dataset.teams}
+    advisors = {a for t in dataset.teams for a in t.hr_advisor_ids}
+    for employee in dataset.employees:
+        groups = users[employee.id]
+        assert "staff" in groups
+        if employee.team_id:
+            assert f"team-{employee.team_id}" in groups
+        assert ("managers" in groups) == (employee.id in managers), employee.id
+        assert ("people-advisors" in groups) == (employee.id in advisors), employee.id
+        assert ("it-agents" in groups) == employee.it_agent, employee.id
+        assert ("finance-team" in groups) == (employee.team_id == "finance"), employee.id
+        assert ("workplace-team" in groups) == (employee.team_id == "workplace"), employee.id
+
+
+def test_tuple_users_are_known_employees_or_teams(dataset: Dataset) -> None:
+    """covers: AC-8 (user objects are user:<employee id>)"""
+    known = {e.id for e in dataset.employees}
+    tuples = export_openfga(dataset, True).tuples
+    for t in tuples:
+        kind, _, ident = t.user.partition(":")
+        if kind == "user":
+            assert ident in known, t
+    owners = {(t.object, t.user) for t in tuples if t.relation == "owner"}
+    assert owners == {(f"employee:{e.id}", f"user:{e.id}") for e in dataset.employees}
+
+
+def test_every_claim_iban_is_valid_on_the_made_up_bank(dataset: Dataset) -> None:
+    """covers: AC-11 (IBANs on bank code XTSR with a valid mod 97 checksum)"""
+    claims = export_erpnext(dataset, True).expense_claims
+    assert claims
+    for claim in claims:
+        assert claim.payable_iban.startswith("NL")
+        assert claim.payable_iban[4:8] == "XTSR"
+        assert iban_is_valid(claim.payable_iban), claim.name
+
+
+def test_create_actions_carry_the_joiner_record(dataset: Dataset) -> None:
+    """covers: AC-16 (each change lists the record and its field values)"""
+    creates = [a for a in export_demo_actions(dataset).actions if a.action == "create_employee"]
+    lisa, second = ({v.field: v.value for v in a.values} for a in creates)
+    assert lisa["employee"] == LISA
+    assert lisa["date_of_joining"] == "2026-10-12"
+    assert (lisa["department"], lisa["reports_to"]) == ("payments", "TES-01001")
+    assert lisa["company_email"].endswith("@tessaro.example")
+    assert second["employee"] == "TES-01043"
+    assert second["date_of_joining"] > lisa["date_of_joining"]
+    assert [a.demo_step for a in creates] == [3, 5]
