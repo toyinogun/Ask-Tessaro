@@ -15,6 +15,9 @@ dist/
 *.dec.yaml
 age.key
 
+# Dataset export output (regenerate with `just dataset`)
+dataset/build/
+
 # Rendered charts
 .rendered/
 
