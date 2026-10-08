@@ -1,0 +1,12 @@
+# Stand in arrangements. Pieter's window ends during the demo (`@standin_end`).
+standins:
+- id: standin-payments
+  user_id: TES-01002
+  team_id: payments
+  valid_from: "@anchor-2d"
+  valid_until: "@standin_end"
+- id: standin-workplace
+  user_id: TES-01007
+  team_id: workplace
+  valid_from: "@anchor-5d"
+  valid_until: "@anchor+10d"

@@ -1,0 +1,13 @@
+# Access bundle for workplace (PRD 9.5). Elevated groups need IT approval.
+team: workplace
+authentik_groups:
+- staff
+- team-workplace
+- workplace-team
+- facilities
+zulip_channels:
+- workplace
+- general
+elevated: []
+laptop_profile: office-standard
+default_office: amsterdam

@@ -1,0 +1,48 @@
+# Expense claims in EUR. Amounts are quoted strings with two decimals.
+claims:
+- id: EXP-0001
+  employee_id: TES-01003
+  approver_id: TES-01001
+  description: 'Berlin trip: train and two hotel nights for the payments partner workshop'
+  amount: "412.60"
+  status: approved
+  submitted_on: "@anchor-6wd"
+  approved_on: "@anchor-3wd"
+  expected_payment_date: "@anchor+3wd"
+- id: EXP-0002
+  employee_id: TES-01007
+  approver_id: TES-01001
+  description: 'Conference ticket: SRE meetup Utrecht'
+  amount: "149.00"
+  status: submitted
+  submitted_on: "@anchor-2wd"
+- id: EXP-0003
+  employee_id: TES-01024
+  approver_id: TES-01022
+  description: Accounting course materials
+  amount: "86.40"
+  status: paid
+  submitted_on: "@anchor-25wd"
+  approved_on: "@anchor-20wd"
+  expected_payment_date: "@anchor-15wd"
+  paid_on: "@anchor-15wd"
+- id: EXP-0004
+  employee_id: TES-01013
+  approver_id: TES-01011
+  description: USB-C dock for the service desk
+  amount: "129.95"
+  status: draft
+- id: EXP-0005
+  employee_id: TES-01021
+  approver_id: TES-01017
+  description: Team lunch without receipt
+  amount: "64.00"
+  status: rejected
+  submitted_on: "@anchor-8wd"
+- id: EXP-0006
+  employee_id: TES-01004
+  approver_id: TES-01001
+  description: Taxi after the late release
+  amount: "38.20"
+  status: submitted
+  submitted_on: "@anchor-1wd"

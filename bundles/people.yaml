@@ -1,0 +1,13 @@
+# Access bundle for people (PRD 9.5). Elevated groups need IT approval.
+team: people
+authentik_groups:
+- staff
+- team-people
+- hr-systems
+zulip_channels:
+- people
+- general
+elevated:
+- authentik_group: hr-admin
+laptop_profile: office-standard
+default_office: amsterdam

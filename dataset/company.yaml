@@ -1,0 +1,150 @@
+# Offices, bookable spaces and the five teams. The CEO sits outside the teams (employees.yaml).
+offices:
+- id: amsterdam
+  name: Tessaro Amsterdam
+  street: Lantaarnvisgracht 214
+  postcode: 1016 XT
+  city: Amsterdam
+  timezone: Europe/Amsterdam
+- id: rotterdam
+  name: Tessaro Rotterdam
+  street: Kompasroosweg 37
+  postcode: 3011 TK
+  city: Rotterdam
+  timezone: Europe/Amsterdam
+spaces:
+- id: ams-desk-01
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-01
+  capacity: 1
+- id: ams-desk-02
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-02
+  capacity: 1
+- id: ams-desk-03
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-03
+  capacity: 1
+- id: ams-desk-04
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-04
+  capacity: 1
+- id: ams-desk-05
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-05
+  capacity: 1
+- id: ams-desk-06
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-06
+  capacity: 1
+- id: ams-desk-07
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-07
+  capacity: 1
+- id: ams-desk-08
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-08
+  capacity: 1
+- id: ams-desk-09
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-09
+  capacity: 1
+- id: ams-desk-10
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-10
+  capacity: 1
+- id: ams-desk-11
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-11
+  capacity: 1
+- id: ams-desk-12
+  office_id: amsterdam
+  kind: desk
+  name: Desk A-12
+  capacity: 1
+- id: ams-canal-room
+  office_id: amsterdam
+  kind: room
+  name: Canal room
+  capacity: 8
+- id: ams-tulip-room
+  office_id: amsterdam
+  kind: room
+  name: Tulip room
+  capacity: 4
+- id: rtm-desk-01
+  office_id: rotterdam
+  kind: desk
+  name: Desk R-01
+  capacity: 1
+- id: rtm-desk-02
+  office_id: rotterdam
+  kind: desk
+  name: Desk R-02
+  capacity: 1
+- id: rtm-desk-03
+  office_id: rotterdam
+  kind: desk
+  name: Desk R-03
+  capacity: 1
+- id: rtm-desk-04
+  office_id: rotterdam
+  kind: desk
+  name: Desk R-04
+  capacity: 1
+- id: rtm-desk-05
+  office_id: rotterdam
+  kind: desk
+  name: Desk R-05
+  capacity: 1
+- id: rtm-desk-06
+  office_id: rotterdam
+  kind: desk
+  name: Desk R-06
+  capacity: 1
+- id: rtm-harbour-room
+  office_id: rotterdam
+  kind: room
+  name: Harbour room
+  capacity: 6
+teams:
+- id: payments
+  name: Payments
+  manager_id: TES-01001
+  hr_advisor_ids:
+  - TES-01018
+- id: it
+  name: IT
+  manager_id: TES-01011
+  hr_advisor_ids:
+  - TES-01018
+  ticket_queue: it
+- id: people
+  name: People
+  manager_id: TES-01017
+  hr_advisor_ids:
+  - TES-01019
+  ticket_queue: people
+- id: finance
+  name: Finance
+  manager_id: TES-01022
+  hr_advisor_ids:
+  - TES-01019
+  ticket_queue: finance
+- id: workplace
+  name: Workplace
+  manager_id: TES-01027
+  hr_advisor_ids:
+  - TES-01019
+  ticket_queue: workplace
