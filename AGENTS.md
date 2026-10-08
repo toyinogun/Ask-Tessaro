@@ -23,6 +23,7 @@ just dev <svc>   # one service with hot reload, e.g. `just dev tool-gateway`
 just fmt         # ruff fix + format
 just check       # lint, typecheck, test (80% per package), policy, charts: what CI runs
 just new-service <name> <namespace>   # stamp a service from templates/service
+just dataset --anchor <iso>   # export the fictional company dataset to dataset/build/ (gitignored)
 ```
 
 ## Specs
@@ -72,6 +73,7 @@ Stored in `docs/specs/`, one folder per decision: `docs/specs/NNNN-title/index.m
 - [libs/tessaro-auth/AGENTS.md](libs/tessaro-auth/AGENTS.md) (token issue and verify)
 - [libs/tessaro-contracts/AGENTS.md](libs/tessaro-contracts/AGENTS.md) (typed, versioned tool contracts)
 - [libs/tessaro-clients/AGENTS.md](libs/tessaro-clients/AGENTS.md) (team system client protocols and fakes)
+- [libs/tessaro-dataset/AGENTS.md](libs/tessaro-dataset/AGENTS.md): the fictional company dataset, its validation and one exporter per team system
 - [services/zulip-adapter/AGENTS.md](services/zulip-adapter/AGENTS.md) (Zulip in and out, Redis streams)
 - [services/privacy-proxy/AGENTS.md](services/privacy-proxy/AGENTS.md) (LLM proxy with Presidio pseudonymisation)
 - [services/master-agent/AGENTS.md](services/master-agent/AGENTS.md) (LangGraph read only agent)
