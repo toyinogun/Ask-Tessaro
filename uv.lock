@@ -753,7 +753,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12" },
     { name = "pydantic-settings", specifier = ">=2.11" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10" },
-    { name = "starlette", specifier = ">=1.7.0" },
+    { name = "starlette", specifier = ">=1.0" },
     { name = "structlog", specifier = ">=25.4" },
 ]
 
