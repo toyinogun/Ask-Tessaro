@@ -1,0 +1,166 @@
+"""Exporters: seed versus demo inputs, leaks, tuples and determinism (AC-7 to AC-12, AC-16)."""
+
+import json
+from decimal import Decimal
+
+import yaml
+
+from tessaro_dataset import (
+    EXPORTERS,
+    Dataset,
+    export_all,
+    export_authentik,
+    export_bookstack,
+    export_demo_actions,
+    export_directory,
+    export_erpnext,
+    export_frappe_hr,
+    export_openfga,
+    export_seatsurfing,
+    export_snipeit,
+    export_zammad,
+    export_zulip,
+    load_dataset,
+    render_exports,
+)
+from tessaro_dataset.exports.openfga import STAND_IN_CONDITION
+from tessaro_dataset.models import LeaveApplication, sensitive_fields
+from tessaro_dataset.registry import ALLOWED_RELATIONS, CONDITIONED_RELATIONS
+
+from .conftest import PATHS, WEDNESDAY_10
+
+LISA = "TES-01042"
+
+
+def test_every_target_has_an_exporter() -> None:
+    assert set(EXPORTERS) == {
+        "frappe_hr",
+        "erpnext",
+        "zammad",
+        "snipeit",
+        "seatsurfing",
+        "bookstack",
+        "authentik",
+        "zulip",
+        "openfga",
+        "directory",
+        "demo_actions",
+    }
+
+
+def test_seed_leaves_out_joiners_unless_asked(dataset: Dataset) -> None:
+    for name, run in EXPORTERS.items():
+        if name in ("directory", "demo_actions", "bookstack"):
+            continue
+        seed = json.dumps(run(dataset, False).model_dump(mode="json"))
+        assert LISA not in seed, name
+    full = export_frappe_hr(dataset, include_demo_inputs=True)
+    assert LISA in {e.employee for e in full.employees}
+    assert LISA in {e.employee_id for e in export_directory(dataset).entries}
+    assert LISA in json.dumps(export_openfga(dataset, True).model_dump(mode="json"))
+
+
+def test_seed_holds_leaver_and_mover_before(dataset: Dataset) -> None:
+    employees = {e.employee: e for e in export_frappe_hr(dataset).employees}
+    assert employees["TES-01007"].relieving_date is None
+    assert employees["TES-01023"].department == "finance"
+    assert employees["TES-01023"].reports_to == "TES-01022"
+    demo = export_demo_actions(dataset)
+    assert [a.action for a in demo.actions] == [
+        "create_employee",
+        "create_employee",
+        "set_relieving_date",
+        "move_employee",
+    ]
+    assert [a.employee_id for a in demo.actions] == [LISA, "TES-01043", "TES-01007", "TES-01023"]
+    move = {v.field: v.value for v in demo.actions[3].values}
+    assert move == {"department": "payments", "reports_to": "TES-01001", "move_date": "2026-10-14"}
+    assert demo.demo_only_ids == (LISA, "TES-01043")
+
+
+def _sensitive_values(dataset: Dataset) -> list[str]:
+    assert sensitive_fields(LeaveApplication) == ("reason",)
+    return [a.reason for a in dataset.applications if a.reason]
+
+
+def test_sensitive_reason_reaches_only_frappe_hr(dataset: Dataset) -> None:
+    values = _sensitive_values(dataset)
+    assert values
+    files = render_exports(export_all(dataset, include_demo_inputs=True))
+    for name, content in files.items():
+        for value in values:
+            if name == "frappe_hr.json":
+                assert json.dumps(value)[1:-1] in content
+            else:
+                assert value not in content, name
+
+
+def test_tuples(dataset: Dataset) -> None:
+    tuples = export_openfga(dataset).tuples
+    for t in tuples:
+        object_type = t.object.split(":")[0]
+        user_type = t.user.split(":")[0]
+        assert user_type in ALLOWED_RELATIONS[(object_type, t.relation)]
+        expected = CONDITIONED_RELATIONS.get((object_type, t.relation))
+        assert (t.condition.name if t.condition else None) == expected
+        assert object_type != "lifecycle_case"
+    relations = {t.relation for t in tuples}
+    assert relations == {"owner", "team", "member", "manager", "hr_advisor", "stand_in"}
+    assert any(t.user == "user:TES-01007" and t.object == "team:workplace" for t in tuples)
+    stand_in = [t for t in tuples if t.relation == "stand_in"]
+    assert all(t.condition and t.condition.name == STAND_IN_CONDITION for t in stand_in)
+
+
+def test_tuple_file_is_fga_cli_shape(dataset: Dataset) -> None:
+    rows = yaml.safe_load(
+        render_exports({"openfga": export_openfga(dataset)})["openfga.tuples.yaml"]
+    )
+    assert {"user", "relation", "object"} <= set(rows[0])
+    conditioned = [r for r in rows if "condition" in r]
+    assert conditioned
+    assert set(conditioned[0]["condition"]["context"]) == {"valid_from", "valid_until"}
+
+
+def test_exports_are_byte_identical() -> None:
+    first = render_exports(export_all(load_dataset(PATHS, anchor=WEDNESDAY_10)))
+    second = render_exports(export_all(load_dataset(PATHS, anchor=WEDNESDAY_10)))
+    assert first == second
+    assert len(first) == 11
+
+
+def test_target_records(dataset: Dataset) -> None:
+    claim = export_erpnext(dataset).expense_claims[0]
+    assert (claim.name, claim.total_claimed_amount) == ("EXP-0001", Decimal("412.60"))
+    assert claim.payable_iban.startswith("NL")
+    zammad = export_zammad(dataset)
+    repair = next(t for t in zammad.tickets if t.number == "T-1001")
+    visible = [a for a in repair.articles if not a.internal]
+    assert repair.latest_update == visible[-1].created_at
+    assert "AI assistant" in visible[-1].body
+    agents = {u.employee_id: u.agent_groups for u in zammad.users if u.agent_groups}
+    assert agents["TES-01013"] == ("it",)
+    assert agents["TES-01019"] == ("people",)
+    assert "TES-01015" not in agents
+    assert [g.name for g in zammad.groups] == ["finance", "it", "people", "workplace"]
+    snipe = export_snipeit(dataset)
+    assert sum(a.assigned_to is None and a.status == "ready_to_deploy" for a in snipe.assets) == 7
+    seats = export_seatsurfing(dataset)
+    assert seats.bookings[0].enter.hour == 9
+    assert {loc.id for loc in seats.locations} == {"amsterdam", "rotterdam"}
+    book = export_bookstack(dataset)
+    assert len(book.pages) == 20
+    assert book.books[0].name == "Tessaro handbook"
+    assert {c.slug for c in book.chapters} >= {"time-off", "money"}
+    auth = export_authentik(dataset)
+    elevated = {g.name for g in auth.groups if g.elevated}
+    assert "prod-readonly" in elevated
+    assert all("prod-readonly" not in u.groups for u in auth.users)
+    zulip = export_zulip(dataset)
+    assert any(s.channel == "announcements" for s in zulip.subscriptions)
+    assert next(u for u in zulip.users if u.employee_id == "TES-01005").full_name == "Daan de Wit"
+
+
+def test_exporters_do_not_change_the_dataset(dataset: Dataset) -> None:
+    before = dataset.employees
+    export_all(dataset, include_demo_inputs=True)
+    assert dataset.employees is before
