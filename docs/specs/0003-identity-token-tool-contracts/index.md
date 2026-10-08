@@ -231,9 +231,9 @@ policy/data/tools.json                       generated OPA tool data (feature 6 
 Ordered Tracer Bullet style: first one thin thread through both libraries (mint, verify, contract, MCP projection) proven by one test, then each strand thickened. TDD per root `AGENTS.md`: a failing test first for every task.
 
 1. [x] Thin thread: `claims.py`, minimal `keys.py` (one adapter key), `issue_human_token` and `verify` for the happy path only, plus `Scope`, a minimal `ToolContract`, `get_my_leave` and `to_mcp_tool`. One test mints a token for the demo persona, verifies it, and projects `get_my_leave`, satisfies **AC-1**, **AC-6**, **AC-15**, **AC-17**
-2. Roles and refusal: `roles.py` table and every `MintRefused` reason in order, satisfies **AC-2**, **AC-3**
-3. Worker tokens and signer kinds: `issue_worker_token`, kid prefix kinds, the two key `KeySet`, satisfies **AC-4**, **AC-5**, **AC-8**
-4. Every verify step in order with an injected clock, the header member check and the PyJWT exception mapping, satisfies **AC-7**, **AC-8**
+2. [x] Roles and refusal: `roles.py` table and every `MintRefused` reason in order, satisfies **AC-2**, **AC-3**
+3. [x] Worker tokens and signer kinds: `issue_worker_token`, kid prefix kinds, the two key `KeySet`, satisfies **AC-4**, **AC-5**, **AC-8**
+4. [x] Every verify step in order with an injected clock, the header member check and the PyJWT exception mapping, satisfies **AC-7**, **AC-8**
 5. Settings: `TokenSigningSettings`, `TokenVerifySettings` and `check_signer_against`, satisfies **AC-9**
 6. `edge.py`: `principal_from_headers` with 401 mapping, rejection logging and request ID binding, satisfies **AC-11**, **AC-12**
 7. Dev keys: `devkeys.py`, `just keys` (run by `just init`), the `just dev` key mapping, `.env.example` updates, satisfies **AC-10**
