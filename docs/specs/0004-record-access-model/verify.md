@@ -1,4 +1,4 @@
-# Verify: Record access model · spec 0004 · updated 2026-10-08
+# Verify: Record access model · spec 0004 · updated 2026-10-08 (build)
 _Steps derived from spec 0004 acceptance criteria. `/check verify` runs these; `/test` locks the durable ones._
 
 ## Commands
@@ -16,6 +16,8 @@ _Steps derived from spec 0004 acceptance criteria. `/check verify` runs these; `
 - [ ] Remove `define hr_advisor` from a scratch copy of the model the parser test reads → the registry test fails      → AC-9
 - [ ] `grep -c "it_approver" authz/.build/openfga.tuples.yaml` → at least 1, every one on `org:tessaro`; no `lifecycle_case` object in the file      → AC-9
 - [ ] With OpenFGA stopped, `just authz-load` → exits non zero, `.env` unchanged      → AC-11
+- [ ] With OpenFGA stopped, `just authz-load` → fails within a few seconds with `OpenFGA is not answering`, never hangs (fga store create has no timeout of its own)      → AC-11
+- [ ] `uv run python -m tessaro_dataset.fgaload env --env-file <copy of .env> --store-json <store create output> --write-json <a write output with "failed_count": 1>` → exit 1, the copy unchanged (fga tuple write exits 0 even when tuples fail)      → AC-11
 - [ ] `just up` then `just authz-load` twice → two runs, `.env` holds one `OPENFGA_STORE_ID` and one `OPENFGA_MODEL_ID` line each, matching the second run's output; `fga query check --store-id … user:TES-01003 can_view_leave_dates employee:TES-01003 --context '{"current_time":"<now UTC>"}'` → allowed      → AC-11
 
 ## Value sourcing
