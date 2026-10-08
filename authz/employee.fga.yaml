@@ -201,3 +201,64 @@ tests:
         assertions:
           can_view_own_data: false
           can_view_leave_dates: false
+
+  - name: the payments manager sees the team's leave dates, not their data (AC-3)
+    check:
+      - user: user:TES-01001
+        objects: [employee:TES-01001, employee:TES-01002, employee:TES-01003, employee:TES-01004, employee:TES-01005, employee:TES-01006, employee:TES-01007, employee:TES-01008, employee:TES-01009, employee:TES-01010]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: true
+      - user: user:TES-01001
+        objects: [employee:TES-01002, employee:TES-01003, employee:TES-01004, employee:TES-01005, employee:TES-01006, employee:TES-01007, employee:TES-01008, employee:TES-01009, employee:TES-01010]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_own_data: false
+  - name: the payments manager is refused every other team (AC-5)
+    check:
+      - user: user:TES-01001
+        objects: [employee:TES-01011, employee:TES-01012, employee:TES-01013, employee:TES-01014, employee:TES-01015, employee:TES-01016, employee:TES-01017, employee:TES-01018, employee:TES-01019, employee:TES-01020, employee:TES-01021, employee:TES-01022, employee:TES-01023, employee:TES-01024, employee:TES-01025, employee:TES-01026, employee:TES-01027, employee:TES-01028, employee:TES-01029, employee:TES-01030, employee:TES-01000]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: false
+          can_view_own_data: false
+  - name: the payments stand in, inside its window, is refused every other team (AC-5)
+    check:
+      - user: user:TES-01002
+        objects: [employee:TES-01001, employee:TES-01002, employee:TES-01003, employee:TES-01004, employee:TES-01005, employee:TES-01006, employee:TES-01007, employee:TES-01008, employee:TES-01009, employee:TES-01010]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: true
+      - user: user:TES-01002
+        objects: [employee:TES-01011, employee:TES-01012, employee:TES-01013, employee:TES-01014, employee:TES-01015, employee:TES-01016, employee:TES-01017, employee:TES-01018, employee:TES-01019, employee:TES-01020, employee:TES-01021, employee:TES-01022, employee:TES-01023, employee:TES-01024, employee:TES-01025, employee:TES-01026, employee:TES-01027, employee:TES-01028, employee:TES-01029, employee:TES-01030, employee:TES-01000]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: false
+          can_view_own_data: false
+  - name: the finance manager sees finance and is refused every other team (AC-5)
+    check:
+      - user: user:TES-01022
+        objects: [employee:TES-01022, employee:TES-01023, employee:TES-01024, employee:TES-01025, employee:TES-01026]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: true
+      - user: user:TES-01022
+        objects: [employee:TES-01001, employee:TES-01002, employee:TES-01003, employee:TES-01004, employee:TES-01005, employee:TES-01006, employee:TES-01007, employee:TES-01008, employee:TES-01009, employee:TES-01010, employee:TES-01011, employee:TES-01012, employee:TES-01013, employee:TES-01014, employee:TES-01015, employee:TES-01016, employee:TES-01017, employee:TES-01018, employee:TES-01019, employee:TES-01020, employee:TES-01021, employee:TES-01027, employee:TES-01028, employee:TES-01029, employee:TES-01030, employee:TES-01000]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: false
+          can_view_own_data: false
+  - name: the HR advisor sees the teams they advise and no others (AC-6)
+    check:
+      - user: user:TES-01018
+        objects: [employee:TES-01001, employee:TES-01002, employee:TES-01003, employee:TES-01004, employee:TES-01005, employee:TES-01006, employee:TES-01007, employee:TES-01008, employee:TES-01009, employee:TES-01010, employee:TES-01011, employee:TES-01012, employee:TES-01013, employee:TES-01014, employee:TES-01015, employee:TES-01016]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: true
+          can_view_own_data: false
+      - user: user:TES-01018
+        objects: [employee:TES-01017, employee:TES-01019, employee:TES-01020, employee:TES-01021, employee:TES-01022, employee:TES-01023, employee:TES-01024, employee:TES-01025, employee:TES-01026, employee:TES-01027, employee:TES-01028, employee:TES-01029, employee:TES-01030, employee:TES-01000]
+        context: {current_time: "2027-03-15T09:10:00Z"}
+        assertions:
+          can_view_leave_dates: false
+          can_view_own_data: false
