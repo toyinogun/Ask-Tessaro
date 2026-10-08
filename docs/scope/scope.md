@@ -104,12 +104,12 @@ The OpenFGA model from PRD 8.3 (owner, team, manager, time boxed stand in, HR ad
 **Done when:** the model passes CLI tests for self access, manager leave dates, expired stand ins, cross team attempts and HR advisor scope, using tuples generated from the dataset.
 spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `libs/tessaro-dataset/`
 - [x] Design it (spec): `/architect record access model`
-- [ ] Build it: `/develop record access model`
+- [x] Build it: `/develop record access model`
   - [x] Thin thread: model file, org IT approver export, registry check against the model, `just authz-test` with self access tests (AC-1, AC-2, AC-9, AC-10)
   - [x] Team access: managers, HR advisors and cross team checks (AC-3, AC-5, AC-6)
   - [x] Stand in window: start, inside, end and the second stand in (AC-4, AC-5)
   - [x] Lifecycle cases: fixture cases, separation of duties and the mover (AC-7, AC-8)
-  - [ ] Local load: `just authz-load` and the `.env.example` lines (AC-11)
+  - [x] Local load: `just authz-load` and the `.env.example` lines (AC-11)
 - [ ] Verify it: `/check verify record access model`
 - [ ] Test it: `/test record access model`
 - [ ] Review it (fresh model): `/check review record access model`

@@ -115,6 +115,27 @@ authz-test:
     uv run tessaro-dataset export --out authz/.build --anchor 2027-03-15T10:00+01:00 --stand-in-minutes 15
     for t in authz/*.fga.yaml; do echo "fga model test $t"; fga model test --tests "$t"; done
 
+# Load the model and today's dataset tuples into a fresh local OpenFGA store, then pin its IDs in .env
+authz-load:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    api_url="$(grep -E '^OPENFGA_API_URL=' .env | tail -n1 | cut -d= -f2- || true)"
+    if [ -z "$api_url" ]; then echo "authz-load: OPENFGA_API_URL is not set in .env" >&2; exit 1; fi
+    # fga store create never times out on a dead server, so fail fast here instead
+    if ! curl -fsS --max-time 5 "$api_url/healthz" > /dev/null; then
+        echo "authz-load: OpenFGA is not answering at $api_url (run \`just up\` first)" >&2; exit 1
+    fi
+    work="$(mktemp -d)"
+    trap 'rm -rf "$work"' EXIT
+    uv run tessaro-dataset export --out "$work/export"
+    fga store create --name tessaro --model authz/model.fga --api-url "$api_url" > "$work/store.json"
+    ids="$(uv run python -m tessaro_dataset.fgaload ids --store-json "$work/store.json")"
+    read -r store_id model_id <<< "$ids"
+    fga tuple write --file "$work/export/openfga.tuples.yaml" --store-id "$store_id" \
+        --model-id "$model_id" --api-url "$api_url" > "$work/write.json"
+    uv run python -m tessaro_dataset.fgaload env --env-file .env \
+        --store-json "$work/store.json" --write-json "$work/write.json"
+
 # Lint the shared chart and validate it rendered with every release values file
 charts:
     helm lint charts/tessaro-service --values charts/tessaro-service/ci/test-values.yaml
