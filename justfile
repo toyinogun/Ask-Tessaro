@@ -62,6 +62,10 @@ dev service port="":
 dataset *args:
     uv run tessaro-dataset export --out dataset/build {{ args }}
 
+# Write contract snapshots (libs/tessaro-contracts/schemas/) and OPA tool data (policy/data/tools.json)
+contracts:
+    uv run python -m tessaro_contracts.export
+
 # Ruff lint and format check
 lint:
     uv run ruff check .

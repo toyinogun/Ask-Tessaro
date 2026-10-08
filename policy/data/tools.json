@@ -1,0 +1,9 @@
+{
+  "tools": {
+    "get_my_leave": {
+      "owner": "people-team",
+      "scope": "hr:read",
+      "version": "1.0"
+    }
+  }
+}

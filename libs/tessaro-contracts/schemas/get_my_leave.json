@@ -1,0 +1,150 @@
+{
+  "_meta": {
+    "tessaro/authorization": "OpenFGA check can_view_own_data on employee:<sub>",
+    "tessaro/identity": "self",
+    "tessaro/never_returns": [
+      "reason",
+      "absence_reason",
+      "medical_note",
+      "notes",
+      "description",
+      "salary"
+    ],
+    "tessaro/owner": "people-team",
+    "tessaro/scope": "hr:read",
+    "tessaro/version": "1.0",
+    "tessaro/write": null
+  },
+  "description": "Your own leave: this year's vacation balance in whole working days (entitled, taken, pending and remaining, where pending is not yet deducted) and your open or approved leave that has not ended yet, soonest first, at most 50 entries (truncated is true when there were more). Takes no input: it always answers for the person asking.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "description": "No input: the person is always the caller named by the token.",
+    "properties": {},
+    "title": "GetMyLeaveInput",
+    "type": "object"
+  },
+  "name": "get_my_leave",
+  "outputSchema": {
+    "$defs": {
+      "LeaveBalance": {
+        "additionalProperties": false,
+        "description": "The year's vacation balance in whole working days. Pending is not deducted.",
+        "properties": {
+          "entitled_days": {
+            "title": "Entitled Days",
+            "type": "integer"
+          },
+          "leave_type": {
+            "const": "vacation",
+            "title": "Leave Type",
+            "type": "string"
+          },
+          "pending_days": {
+            "title": "Pending Days",
+            "type": "integer"
+          },
+          "remaining_days": {
+            "title": "Remaining Days",
+            "type": "integer"
+          },
+          "taken_days": {
+            "title": "Taken Days",
+            "type": "integer"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "leave_type",
+          "year",
+          "entitled_days",
+          "taken_days",
+          "pending_days",
+          "remaining_days"
+        ],
+        "title": "LeaveBalance",
+        "type": "object"
+      },
+      "UpcomingLeave": {
+        "additionalProperties": false,
+        "description": "One open or approved leave application that has not ended yet.",
+        "properties": {
+          "application_id": {
+            "title": "Application Id",
+            "type": "string"
+          },
+          "from_date": {
+            "format": "date",
+            "title": "From Date",
+            "type": "string"
+          },
+          "leave_type": {
+            "enum": [
+              "vacation",
+              "sick",
+              "parental",
+              "special"
+            ],
+            "title": "Leave Type",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "approved"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "to_date": {
+            "format": "date",
+            "title": "To Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "leave_type",
+          "from_date",
+          "to_date",
+          "status"
+        ],
+        "title": "UpcomingLeave",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "The caller's balance (empty when no allocation exists) and upcoming leave.",
+    "properties": {
+      "balances": {
+        "items": {
+          "$ref": "#/$defs/LeaveBalance"
+        },
+        "maxItems": 1,
+        "title": "Balances",
+        "type": "array"
+      },
+      "truncated": {
+        "title": "Truncated",
+        "type": "boolean"
+      },
+      "upcoming": {
+        "items": {
+          "$ref": "#/$defs/UpcomingLeave"
+        },
+        "maxItems": 50,
+        "title": "Upcoming",
+        "type": "array"
+      }
+    },
+    "required": [
+      "balances",
+      "upcoming",
+      "truncated"
+    ],
+    "title": "GetMyLeaveOutput",
+    "type": "object"
+  }
+}
