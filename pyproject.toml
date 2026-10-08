@@ -13,6 +13,7 @@ dev = [
     "pytest-asyncio>=1.2",
     "pytest-cov>=7.0",
     "ruff>=0.16",
+    "types-pyyaml>=6.0.12",
 ]
 
 [tool.uv]
@@ -27,6 +28,7 @@ tessaro-core = { workspace = true }
 tessaro-auth = { workspace = true }
 tessaro-contracts = { workspace = true }
 tessaro-clients = { workspace = true }
+tessaro-dataset = { workspace = true }
 
 [tool.ruff]
 line-length = 100
