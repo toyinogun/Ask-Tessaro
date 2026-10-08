@@ -47,6 +47,10 @@ dev service port="":
     exec uv run --env-file .env --package {{ service }} uvicorn \
         "tessaro_{{ replace(service, "-", "_") }}.main:app" --reload --port "${port:-$default}"
 
+# Export the fictional company dataset to dataset/build/ (gitignored), e.g. `just dataset --anchor 2026-10-07T10:00+02:00`
+dataset *args:
+    uv run tessaro-dataset export --out dataset/build {{ args }}
+
 # Ruff lint and format check
 lint:
     uv run ruff check .
