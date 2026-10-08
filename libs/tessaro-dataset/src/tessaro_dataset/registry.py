@@ -62,19 +62,27 @@ EXTRA_GROUPS: Final = frozenset(
 
 LAPTOP_PROFILES: Final = frozenset({"engineering-standard", "office-standard"})
 
+FGA_ORG: Final = "tessaro"
+"""The one OpenFGA org object (`org:tessaro`) that IT approvers hang off."""
+
 ALLOWED_RELATIONS: Final = MappingProxyType(
     {
+        ("org", "it_approver"): frozenset({"user"}),
         ("team", "member"): frozenset({"user"}),
         ("team", "manager"): frozenset({"user"}),
         ("team", "stand_in"): frozenset({"user"}),
         ("team", "hr_advisor"): frozenset({"user"}),
         ("employee", "owner"): frozenset({"user"}),
         ("employee", "team"): frozenset({"team"}),
+        ("lifecycle_case", "org"): frozenset({"org"}),
         ("lifecycle_case", "team"): frozenset({"team"}),
-        ("lifecycle_case", "it_approver"): frozenset({"user"}),
+        ("lifecycle_case", "subject"): frozenset({"user"}),
     }
 )
-"""Directly assignable (object type, relation) pairs and their user types, from PRD 8.3."""
+"""Directly assignable (object type, relation) pairs and their user types, from authz/model.fga.
+
+`tests/test_fga_model.py` checks this against the model (spec 0004 AC-9).
+"""
 
 CONDITIONED_RELATIONS: Final = MappingProxyType({("team", "stand_in"): "within_window"})
 """Relations whose tuples must carry a condition, and its name."""

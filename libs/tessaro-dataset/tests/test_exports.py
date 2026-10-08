@@ -26,7 +26,7 @@ from tessaro_dataset import (
 from tessaro_dataset.derive import iban_is_valid
 from tessaro_dataset.exports.openfga import STAND_IN_CONDITION
 from tessaro_dataset.models import LeaveApplication, sensitive_fields
-from tessaro_dataset.registry import ALLOWED_RELATIONS, CONDITIONED_RELATIONS
+from tessaro_dataset.registry import ALLOWED_RELATIONS, CONDITIONED_RELATIONS, FGA_ORG
 
 from .conftest import PATHS, WEDNESDAY_10
 
@@ -106,10 +106,28 @@ def test_tuples(dataset: Dataset) -> None:
         assert (t.condition.name if t.condition else None) == expected
         assert object_type != "lifecycle_case"
     relations = {t.relation for t in tuples}
-    assert relations == {"owner", "team", "member", "manager", "hr_advisor", "stand_in"}
+    assert relations == {
+        "owner",
+        "team",
+        "member",
+        "manager",
+        "hr_advisor",
+        "stand_in",
+        "it_approver",
+    }
     assert any(t.user == "user:TES-01007" and t.object == "team:workplace" for t in tuples)
     stand_in = [t for t in tuples if t.relation == "stand_in"]
     assert all(t.condition and t.condition.name == STAND_IN_CONDITION for t in stand_in)
+
+
+def test_it_approvers_hang_off_the_org(dataset: Dataset) -> None:
+    """covers: spec 0004 AC-9 (one org it_approver tuple per flagged seed employee)"""
+    tuples = export_openfga(dataset).tuples
+    approvers = {t.user for t in tuples if t.relation == "it_approver"}
+    expected = {f"user:{e.id}" for e in dataset.seed_employees() if e.it_approver}
+    assert approvers == expected
+    assert "user:TES-01012" in approvers
+    assert {t.object for t in tuples if t.relation == "it_approver"} == {f"org:{FGA_ORG}"}
 
 
 def test_tuple_file_is_fga_cli_shape(dataset: Dataset) -> None:

@@ -30,3 +30,6 @@ PRD.md
 
 # Build in public drafts and video renders (kept local)
 .bip/
+
+# OpenFGA model test tuples (regenerate with `just authz-test`)
+authz/.build/

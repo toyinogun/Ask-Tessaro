@@ -1,0 +1,36 @@
+model
+  schema 1.1
+
+type user
+
+type org
+  relations
+    define it_approver: [user]
+
+type team
+  relations
+    define member: [user]
+    define manager: [user]
+    define stand_in: [user with within_window]
+    define hr_advisor: [user]
+    define approver: manager or stand_in
+
+type employee
+  relations
+    define owner: [user]
+    define team: [team]
+    define can_view_own_data: owner
+    define can_view_leave_dates: owner or approver from team or hr_advisor from team
+
+type lifecycle_case
+  relations
+    define org: [org]
+    define team: [team]
+    define subject: [user]
+    define can_approve: approver from team but not subject
+    define can_approve_it: it_approver from org but not subject
+    define can_view: approver from team or hr_advisor from team or it_approver from org
+
+condition within_window(current_time: timestamp, valid_from: timestamp, valid_until: timestamp) {
+  current_time >= valid_from && current_time < valid_until
+}

@@ -107,7 +107,13 @@ test:
 # OPA policy tests and OpenFGA model tests (skipped while the folders hold no tests)
 policy:
     if ls policy/*.rego >/dev/null 2>&1; then opa test policy/ -v; else echo "policy/: no Rego yet (feature 6)"; fi
-    if ls authz/*.fga.yaml >/dev/null 2>&1; then for t in authz/*.fga.yaml; do fga model test --tests "$t"; done; else echo "authz/: no model tests yet (feature 5)"; fi
+    just authz-test
+
+# OpenFGA model tests against tuples exported from the dataset at a fixed anchor (spec 0004)
+authz-test:
+    fga model validate --file authz/model.fga
+    uv run tessaro-dataset export --out authz/.build --anchor 2027-03-15T10:00+01:00 --stand-in-minutes 15
+    for t in authz/*.fga.yaml; do echo "fga model test $t"; fga model test --tests "$t"; done
 
 # Lint the shared chart and validate it rendered with every release values file
 charts:

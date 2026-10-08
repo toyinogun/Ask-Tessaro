@@ -20,8 +20,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 1 | Stack & architecture | Foundation (no cluster) | done |
 | 2 | Coding standards & tooling | Foundation (no cluster) | done |
 | 3 | Fictional company dataset | Foundation (no cluster) | done |
-| 4 | Identity token & tool contracts | Foundation (no cluster) | in-progress |
-| 5 | Record access model | Foundation (no cluster) | planned |
+| 4 | Identity token & tool contracts | Foundation (no cluster) | done |
+| 5 | Record access model | Foundation (no cluster) | in-progress |
 | 6 | Tool policy | Foundation (no cluster) | planned |
 | 7 | Privacy proxy | Foundation (no cluster) | planned |
 | 8 | Cluster investigation & baseline | Foundation (cluster) | planned |
@@ -84,7 +84,7 @@ spec [0002](../specs/0002-fictional-company-dataset/index.md) · code in `libs/t
 - [x] Verify it: `/check verify fictional company dataset`
 - [x] Test it: `/test fictional company dataset`
 
-### 4. Identity token & tool contracts · in-progress · GA
+### 4. Identity token & tool contracts · done · GA
 The signed token every call carries (human vs workflow worker, roles, request ID, 5 minute expiry) and the typed, versioned contract format every tool server publishes. Every service builds against these. No cluster needed.
 **Done when:** token issue and verify work in a shared library with tests for expiry, tampering and kind; the contract format is defined and `get_my_leave` is written in it.
 spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `libs/tessaro-auth/`, `libs/tessaro-contracts/`, `policy/data/`
@@ -99,10 +99,21 @@ spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `li
 - [x] Review it (fresh model): `/check review identity token & tool contracts`
 - [x] Document it: `/document identity token & tool contracts`
 
-### 5. Record access model · needs a decision · GA
+### 5. Record access model · in-progress · GA
 The OpenFGA model from PRD 8.3 (owner, team, manager, time boxed stand in, HR advisor, lifecycle case) with CLI test files. Decides whose records anyone may see or approve. No cluster needed.
 **Done when:** the model passes CLI tests for self access, manager leave dates, expired stand ins, cross team attempts and HR advisor scope, using tuples generated from the dataset.
-- [ ] Design it (spec): `/architect record access model`
+spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `libs/tessaro-dataset/`
+- [x] Design it (spec): `/architect record access model`
+- [ ] Build it: `/develop record access model`
+  - [x] Thin thread: model file, org IT approver export, registry check against the model, `just authz-test` with self access tests (AC-1, AC-2, AC-9, AC-10)
+  - [ ] Team access: managers, HR advisors and cross team checks (AC-3, AC-5, AC-6)
+  - [ ] Stand in window: start, inside, end and the second stand in (AC-4, AC-5)
+  - [ ] Lifecycle cases: fixture cases, separation of duties and the mover (AC-7, AC-8)
+  - [ ] Local load: `just authz-load` and the `.env.example` lines (AC-11)
+- [ ] Verify it: `/check verify record access model`
+- [ ] Test it: `/test record access model`
+- [ ] Review it (fresh model): `/check review record access model`
+- [ ] Document it: `/document record access model`
 
 ### 6. Tool policy · needs a decision · GA
 The OPA policy and data that decide which roles may call which tools, with write scopes usable only by workflow worker tokens. No cluster needed.
