@@ -19,7 +19,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation (no cluster) | done |
 | 2 | Coding standards & tooling | Foundation (no cluster) | done |
-| 3 | Fictional company dataset | Foundation (no cluster) | in-progress |
+| 3 | Fictional company dataset | Foundation (no cluster) | done |
 | 4 | Identity token & tool contracts | Foundation (no cluster) | planned |
 | 5 | Record access model | Foundation (no cluster) | planned |
 | 6 | Tool policy | Foundation (no cluster) | planned |
@@ -71,7 +71,7 @@ Capture conventions and tooling from the real scaffolded repo, then install lint
 - [x] Install pre-commit hooks and CI: `/develop tooling` (code in `.pre-commit-config.yaml`, `.github/workflows/ci.yml`)
 - [x] First CI run on GitHub is green (needs a push)
 
-### 3. Fictional company dataset · in-progress
+### 3. Fictional company dataset · done
 The single source of truth for the made up company: about 30 employees in five teams, managers, HR advisors, an expiring stand in, leave, claims, tickets, devices, bookings, about 20 handbook pages, the pending joiners, mover and leaver, and the three traps (injected ticket text, sick colleague, Dutch name). Every system and test loads from it. No cluster needed.
 **Done when:** one dataset produces loadable records for every system plus OpenFGA tuples and the directory list, and covers every seed and trap in PRD 14.5.
 spec [0002](../specs/0002-fictional-company-dataset/index.md) · code in `libs/tessaro-dataset/`, `dataset/`, `bundles/`
@@ -81,8 +81,8 @@ spec [0002](../specs/0002-fictional-company-dataset/index.md) · code in `libs/t
   - [x] Full models, collecting validation, derivation and every exporter, including `demo_actions` and `standin` (AC-6 to AC-11, AC-14 to AC-16)
   - [x] Author the company, demo cast, traps, handbook pages and access bundles (AC-1, AC-4, AC-5, AC-11, AC-15)
   - [x] CLI, deterministic output, `just dataset`, and the CI load and anchor sweep tests (AC-12, AC-13)
-- [ ] Verify it: `/check verify fictional company dataset`
-- [ ] Test it: `/test fictional company dataset`
+- [x] Verify it: `/check verify fictional company dataset`
+- [x] Test it: `/test fictional company dataset`
 
 ### 4. Identity token & tool contracts · needs a decision · GA
 The signed token every call carries (human vs workflow worker, roles, request ID, 5 minute expiry) and the typed, versioned contract format every tool server publishes. Every service builds against these. No cluster needed.
