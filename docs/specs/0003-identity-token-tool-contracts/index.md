@@ -237,11 +237,11 @@ Ordered Tracer Bullet style: first one thin thread through both libraries (mint,
 5. [x] Settings: `TokenSigningSettings`, `TokenVerifySettings` and `check_signer_against`, satisfies **AC-9**
 6. [x] `edge.py`: `principal_from_headers` with 401 mapping, rejection logging and request ID binding, satisfies **AC-11**, **AC-12**
 7. [x] Dev keys: `devkeys.py`, `just keys` (run by `just init`), the `just dev` key mapping, `.env.example` updates, satisfies **AC-10**
-8. Contract checks: all AC-13 validators in `contract.py` and `schema_rules.py`, `WriteSpec`, `build_registry`, and the `testing.py` helpers, satisfies **AC-13**, **AC-14**, **AC-17**
-9. Results and errors: `ToolResult`, `ToolError`, `ToolErrorCode`, `to_mcp_result`, `to_mcp_error`, satisfies **AC-16**
-10. Export and drift: `export.py`, `just contracts`, committed `schemas/get_my_leave.json` and `policy/data/tools.json`, the drift tests, satisfies **AC-18**
-11. Compatibility rule: the breaking change diff in `schema_rules.py` and the snapshot version test, satisfies **AC-19**
-12. Coverage at 80% or more for both packages, `mypy --strict` clean, `just check` green, satisfies every AC
+8. [x] Contract checks: all AC-13 validators in `contract.py` and `schema_rules.py`, `WriteSpec`, `build_registry`, and the `testing.py` helpers, satisfies **AC-13**, **AC-14**, **AC-17**
+9. [x] Results and errors: `ToolResult`, `ToolError`, `ToolErrorCode`, `to_mcp_result`, `to_mcp_error`, satisfies **AC-16**
+10. [x] Export and drift: `export.py`, `just contracts`, committed `schemas/get_my_leave.json` and `policy/data/tools.json`, the drift tests, satisfies **AC-18**
+11. [x] Compatibility rule: the breaking change diff in `schema_rules.py` and the snapshot version test, satisfies **AC-19**
+12. [x] Coverage at 80% or more for both packages, `mypy --strict` clean, `just check` green, satisfies every AC
 
 ## Consequences
 
