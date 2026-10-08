@@ -1,7 +1,7 @@
 # 0003. Ed25519 identity tokens per issuer, and tool contracts as Pydantic models
 
 **Date**: 2026-10-08
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
