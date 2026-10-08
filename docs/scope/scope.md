@@ -20,7 +20,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 1 | Stack & architecture | Foundation (no cluster) | done |
 | 2 | Coding standards & tooling | Foundation (no cluster) | done |
 | 3 | Fictional company dataset | Foundation (no cluster) | done |
-| 4 | Identity token & tool contracts | Foundation (no cluster) | planned |
+| 4 | Identity token & tool contracts | Foundation (no cluster) | in-progress |
 | 5 | Record access model | Foundation (no cluster) | planned |
 | 6 | Tool policy | Foundation (no cluster) | planned |
 | 7 | Privacy proxy | Foundation (no cluster) | planned |
@@ -84,10 +84,20 @@ spec [0002](../specs/0002-fictional-company-dataset/index.md) · code in `libs/t
 - [x] Verify it: `/check verify fictional company dataset`
 - [x] Test it: `/test fictional company dataset`
 
-### 4. Identity token & tool contracts · needs a decision · GA
+### 4. Identity token & tool contracts · in-progress · GA
 The signed token every call carries (human vs workflow worker, roles, request ID, 5 minute expiry) and the typed, versioned contract format every tool server publishes. Every service builds against these. No cluster needed.
 **Done when:** token issue and verify work in a shared library with tests for expiry, tampering and kind; the contract format is defined and `get_my_leave` is written in it.
-- [ ] Design it (spec): `/architect identity token & tool contracts`
+spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `libs/tessaro-auth/`, `libs/tessaro-contracts/`, `policy/data/`
+- [x] Design it (spec): `/architect identity token & tool contracts`
+- [ ] Build it: `/develop identity token & tool contracts`
+  - [ ] Thin thread: mint a human token, verify it, project `get_my_leave` to an MCP tool (AC-1, AC-6, AC-15, AC-17)
+  - [ ] Full token: roles, mint refusals, worker tokens, signer kinds and every verify rejection in order (AC-2 to AC-8)
+  - [ ] Keys and edges: settings with fail fast key set parsing, `principal_from_headers`, `just keys` and per service dev keys (AC-9 to AC-12)
+  - [ ] Contract format: validators, registry, results and errors, snapshots, OPA tool data export and the version rule (AC-13, AC-14, AC-16, AC-18, AC-19)
+- [ ] Verify it: `/check verify identity token & tool contracts`
+- [ ] Test it: `/test identity token & tool contracts`
+- [ ] Review it (fresh model): `/check review identity token & tool contracts`
+- [ ] Document it: `/document identity token & tool contracts`
 
 ### 5. Record access model · needs a decision · GA
 The OpenFGA model from PRD 8.3 (owner, team, manager, time boxed stand in, HR advisor, lifecycle case) with CLI test files. Decides whose records anyone may see or approve. No cluster needed.
