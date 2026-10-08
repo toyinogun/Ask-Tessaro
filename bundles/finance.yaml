@@ -1,0 +1,14 @@
+# Access bundle for finance (PRD 9.5). Elevated groups need IT approval.
+team: finance
+authentik_groups:
+- staff
+- team-finance
+- finance-team
+- finance-systems
+zulip_channels:
+- finance
+- general
+elevated:
+- authentik_group: finance-admin
+laptop_profile: office-standard
+default_office: rotterdam

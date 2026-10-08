@@ -1,0 +1,14 @@
+# Access bundle for it (PRD 9.5). Elevated groups need IT approval.
+team: it
+authentik_groups:
+- staff
+- team-it
+- eng
+zulip_channels:
+- it
+- engineering
+- general
+elevated:
+- authentik_group: it-admin
+laptop_profile: engineering-standard
+default_office: amsterdam

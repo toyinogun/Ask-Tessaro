@@ -1,0 +1,229 @@
+# Laptops: one per seed employee, stock for every bundle profile, and one archived.
+# A device with no assigned_to is stock.
+devices:
+- asset_tag: TES-LT-0001
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0007331
+  status: deployed
+  assigned_to: TES-01000
+- asset_tag: TES-LT-0002
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0014662
+  status: deployed
+  assigned_to: TES-01001
+- asset_tag: TES-LT-0003
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0021993
+  status: deployed
+  assigned_to: TES-01002
+- asset_tag: TES-LT-0004
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0029324
+  status: in_repair
+  assigned_to: TES-01003
+- asset_tag: TES-LT-0005
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0036655
+  status: deployed
+  assigned_to: TES-01004
+- asset_tag: TES-LT-0006
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0043986
+  status: deployed
+  assigned_to: TES-01005
+- asset_tag: TES-LT-0007
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0051317
+  status: deployed
+  assigned_to: TES-01006
+- asset_tag: TES-LT-0008
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0058648
+  status: deployed
+  assigned_to: TES-01007
+- asset_tag: TES-LT-0009
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0065979
+  status: deployed
+  assigned_to: TES-01008
+- asset_tag: TES-LT-0010
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0073310
+  status: deployed
+  assigned_to: TES-01009
+- asset_tag: TES-LT-0011
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0080641
+  status: deployed
+  assigned_to: TES-01010
+- asset_tag: TES-LT-0012
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0087972
+  status: deployed
+  assigned_to: TES-01011
+- asset_tag: TES-LT-0013
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0095303
+  status: deployed
+  assigned_to: TES-01012
+- asset_tag: TES-LT-0014
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0102634
+  status: deployed
+  assigned_to: TES-01013
+- asset_tag: TES-LT-0015
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0109965
+  status: deployed
+  assigned_to: TES-01014
+- asset_tag: TES-LT-0016
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0117296
+  status: deployed
+  assigned_to: TES-01015
+- asset_tag: TES-LT-0017
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0124627
+  status: deployed
+  assigned_to: TES-01016
+- asset_tag: TES-LT-0018
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0131958
+  status: deployed
+  assigned_to: TES-01017
+- asset_tag: TES-LT-0019
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0139289
+  status: deployed
+  assigned_to: TES-01018
+- asset_tag: TES-LT-0020
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0146620
+  status: deployed
+  assigned_to: TES-01019
+- asset_tag: TES-LT-0021
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0153951
+  status: deployed
+  assigned_to: TES-01020
+- asset_tag: TES-LT-0022
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0161282
+  status: deployed
+  assigned_to: TES-01021
+- asset_tag: TES-LT-0023
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0168613
+  status: deployed
+  assigned_to: TES-01022
+- asset_tag: TES-LT-0024
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0175944
+  status: deployed
+  assigned_to: TES-01023
+- asset_tag: TES-LT-0025
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0183275
+  status: deployed
+  assigned_to: TES-01024
+- asset_tag: TES-LT-0026
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0190606
+  status: deployed
+  assigned_to: TES-01025
+- asset_tag: TES-LT-0027
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0197937
+  status: deployed
+  assigned_to: TES-01026
+- asset_tag: TES-LT-0028
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0205268
+  status: deployed
+  assigned_to: TES-01027
+- asset_tag: TES-LT-0029
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0212599
+  status: deployed
+  assigned_to: TES-01028
+- asset_tag: TES-LT-0030
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0219930
+  status: deployed
+  assigned_to: TES-01029
+- asset_tag: TES-LT-0031
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0227261
+  status: deployed
+  assigned_to: TES-01030
+- asset_tag: TES-LT-0032
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0234592
+  status: ready_to_deploy
+- asset_tag: TES-LT-0033
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0241923
+  status: ready_to_deploy
+- asset_tag: TES-LT-0034
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0249254
+  status: ready_to_deploy
+- asset_tag: TES-LT-0035
+  model: Lenovo ThinkPad T14 Gen 5
+  laptop_profile: engineering-standard
+  serial: TSR0256585
+  status: ready_to_deploy
+- asset_tag: TES-LT-0036
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0263916
+  status: ready_to_deploy
+- asset_tag: TES-LT-0037
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0271247
+  status: ready_to_deploy
+- asset_tag: TES-LT-0038
+  model: Dell Latitude 5450
+  laptop_profile: office-standard
+  serial: TSR0278578
+  status: ready_to_deploy
+- asset_tag: TES-LT-0039
+  model: Lenovo ThinkPad T14 Gen 2
+  laptop_profile: engineering-standard
+  serial: TSR0285909
+  status: archived

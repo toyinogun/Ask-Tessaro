@@ -1,0 +1,14 @@
+# Access bundle for payments (PRD 9.5). Elevated groups need IT approval.
+team: payments
+authentik_groups:
+- staff
+- team-payments
+- eng
+zulip_channels:
+- payments
+- engineering
+- general
+elevated:
+- authentik_group: prod-readonly
+laptop_profile: engineering-standard
+default_office: amsterdam

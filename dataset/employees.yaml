@@ -1,0 +1,462 @@
+# Every employee: 30 team members, the CEO and the two joiners created during the demo.
+# Emails, IBANs, groups and reports to are derived, never written here.
+employees:
+- id: TES-01000
+  first_name: Hanna
+  last_name: Vos
+  title: Chief Executive Officer
+  office_id: amsterdam
+  phone: +31 6 1234 5001
+  home_address:
+    street: Lantaarnvisstraat 3
+    postcode: 1010 AB
+    city: Amsterdam
+  account_number: "4170000000"
+  joining_date: "2016-04-01"
+  is_ceo: true
+- id: TES-01001
+  first_name: Maria
+  last_name: Jansen
+  title: Engineering Manager, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5002
+  home_address:
+    street: Kwartelbeslaan 14
+    postcode: 1017 CD
+    city: Amsterdam
+  account_number: "4170007919"
+  joining_date: "2018-09-03"
+  demo_role: manager
+- id: TES-01002
+  first_name: Pieter
+  last_name: Bakker
+  title: Staff Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5003
+  home_address:
+    street: Mosselkokerhof 25
+    postcode: 2024 EF
+    city: Haarlem
+  account_number: "4170015838"
+  joining_date: "2017-11-13"
+  demo_role: stand_in
+- id: TES-01003
+  first_name: Noor
+  last_name: Visser
+  title: Software Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5004
+  home_address:
+    street: Pepermolengracht 36
+    postcode: 1031 GH
+    city: Amsterdam
+  account_number: "4170023757"
+  joining_date: "2022-02-01"
+  demo_role: persona
+- id: TES-01004
+  first_name: Tom
+  last_name: Smit
+  title: Software Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5005
+  home_address:
+    street: Vlinderdaspad 47
+    postcode: 3538 JK
+    city: Utrecht
+  account_number: "4170031676"
+  joining_date: "2021-06-14"
+  demo_role: refused_colleague
+- id: TES-01005
+  first_name: Daan
+  tussenvoegsel: de
+  last_name: Wit
+  title: Senior Software Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5006
+  home_address:
+    street: Zonnewijzerkade 58
+    postcode: 1045 LM
+    city: Amsterdam
+  account_number: "4170039595"
+  joining_date: "2019-01-07"
+  traps:
+  - dutch_name
+- id: TES-01006
+  first_name: Femke
+  last_name: Mulder
+  title: Product Manager, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5007
+  home_address:
+    street: Tuinkabouterweg 69
+    postcode: 1552 NP
+    city: Zaandam
+  account_number: "4170047514"
+  joining_date: "2020-03-02"
+  demo_role: sick_colleague
+- id: TES-01007
+  first_name: Ruben
+  last_name: Bos
+  title: Site Reliability Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5008
+  home_address:
+    street: Kompasroosstraat 80
+    postcode: 3059 RS
+    city: Rotterdam
+  account_number: "4170055433"
+  joining_date: "2019-08-19"
+  demo_role: leaver
+  relieving_date: "@anchor"
+- id: TES-01008
+  first_name: Lotte
+  last_name: Meijer
+  title: Software Engineer, Payments
+  team_id: payments
+  office_id: rotterdam
+  phone: +31 6 1234 5009
+  home_address:
+    street: Wolkenschuiverlaan 91
+    postcode: 1166 TV
+    city: Amstelveen
+  account_number: "4170063352"
+  joining_date: "2023-04-03"
+- id: TES-01009
+  first_name: Bram
+  tussenvoegsel: van
+  last_name: Dijk
+  title: QA Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5010
+  home_address:
+    street: Zeepbelhof 102
+    postcode: 1073 WX
+    city: Amsterdam
+  account_number: "4170071271"
+  joining_date: "2021-10-11"
+- id: TES-01010
+  first_name: Julia
+  last_name: Peters
+  title: Data Analyst, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5011
+  home_address:
+    street: Knikkerbaanstraat 113
+    postcode: 3080 XZ
+    city: Rotterdam
+  account_number: "4170079190"
+  joining_date: "2024-01-08"
+- id: TES-01011
+  first_name: Jeroen
+  last_name: Hendriks
+  title: IT Manager
+  team_id: it
+  office_id: amsterdam
+  phone: +31 6 1234 5012
+  home_address:
+    street: Kabeljauwkreek 124
+    postcode: 3187 BC
+    city: Schiedam
+  account_number: "4170087109"
+  joining_date: "2017-05-15"
+  it_agent: true
+- id: TES-01012
+  first_name: Anouk
+  last_name: Dekker
+  title: IT Security Lead
+  team_id: it
+  office_id: amsterdam
+  phone: +31 6 1234 5013
+  home_address:
+    street: Lantaarnvisstraat 135
+    postcode: 1094 AB
+    city: Amsterdam
+  account_number: "4170095028"
+  joining_date: "2018-02-05"
+  it_agent: true
+  it_approver: true
+  demo_role: it_approver
+- id: TES-01013
+  first_name: Mark
+  last_name: Vermeulen
+  title: Service Desk Engineer
+  team_id: it
+  office_id: amsterdam
+  phone: +31 6 1234 5014
+  home_address:
+    street: Kwartelbeslaan 146
+    postcode: 1012 CD
+    city: Amsterdam
+  account_number: "4170102947"
+  joining_date: "2020-09-01"
+  it_agent: true
+- id: TES-01014
+  first_name: Sophie
+  last_name: Brouwer
+  title: Service Desk Engineer
+  team_id: it
+  office_id: rotterdam
+  phone: +31 6 1234 5015
+  home_address:
+    street: Mosselkokerhof 157
+    postcode: 2019 EF
+    city: Haarlem
+  account_number: "4170110866"
+  joining_date: "2022-05-16"
+  it_agent: true
+- id: TES-01015
+  first_name: Kevin
+  tussenvoegsel: de
+  last_name: Boer
+  title: Systems Engineer
+  team_id: it
+  office_id: amsterdam
+  phone: +31 6 1234 5016
+  home_address:
+    street: Pepermolengracht 168
+    postcode: 1026 GH
+    city: Amsterdam
+  account_number: "4170118785"
+  joining_date: "2019-11-04"
+- id: TES-01016
+  first_name: Iris
+  last_name: Willems
+  title: Identity Engineer
+  team_id: it
+  office_id: amsterdam
+  phone: +31 6 1234 5017
+  home_address:
+    street: Vlinderdaspad 179
+    postcode: 3533 JK
+    city: Utrecht
+  account_number: "4170126704"
+  joining_date: "2023-02-13"
+- id: TES-01017
+  first_name: Linda
+  last_name: Koster
+  title: Head of People
+  team_id: people
+  office_id: amsterdam
+  phone: +31 6 1234 5018
+  home_address:
+    street: Zonnewijzerkade 10
+    postcode: 1040 LM
+    city: Amsterdam
+  account_number: "4170134623"
+  joining_date: "2016-10-03"
+- id: TES-01018
+  first_name: Sanne
+  tussenvoegsel: de
+  last_name: Vries
+  title: People Advisor
+  team_id: people
+  office_id: amsterdam
+  phone: +31 6 1234 5019
+  home_address:
+    street: Tuinkabouterweg 21
+    postcode: 1547 NP
+    city: Zaandam
+  account_number: "4170142542"
+  joining_date: "2019-04-01"
+  demo_role: people_advisor
+- id: TES-01019
+  first_name: Yusuf
+  last_name: Demir
+  title: People Advisor
+  team_id: people
+  office_id: rotterdam
+  phone: +31 6 1234 5020
+  home_address:
+    street: Kompasroosstraat 32
+    postcode: 3054 RS
+    city: Rotterdam
+  account_number: "4170150461"
+  joining_date: "2021-01-11"
+  demo_role: second_advisor
+- id: TES-01020
+  first_name: Emma
+  last_name: Hoekstra
+  title: Recruiter
+  team_id: people
+  office_id: amsterdam
+  phone: +31 6 1234 5021
+  home_address:
+    street: Wolkenschuiverlaan 43
+    postcode: 1161 TV
+    city: Amstelveen
+  account_number: "4170158380"
+  joining_date: "2022-08-22"
+- id: TES-01021
+  first_name: Lars
+  last_name: Prins
+  title: People Operations Specialist
+  team_id: people
+  office_id: amsterdam
+  phone: +31 6 1234 5022
+  home_address:
+    street: Zeepbelhof 54
+    postcode: 1068 WX
+    city: Amsterdam
+  account_number: "4170166299"
+  joining_date: "2023-09-04"
+- id: TES-01022
+  first_name: Petra
+  last_name: Verbeek
+  title: Finance Manager
+  team_id: finance
+  office_id: rotterdam
+  phone: +31 6 1234 5023
+  home_address:
+    street: Knikkerbaanstraat 65
+    postcode: 3075 XZ
+    city: Rotterdam
+  account_number: "4170174218"
+  joining_date: "2017-03-06"
+- id: TES-01023
+  first_name: Nina
+  last_name: Kok
+  title: Financial Analyst
+  team_id: finance
+  office_id: rotterdam
+  phone: +31 6 1234 5024
+  home_address:
+    street: Kabeljauwkreek 76
+    postcode: 3182 BC
+    city: Schiedam
+  account_number: "4170182137"
+  joining_date: "2020-06-15"
+  demo_role: mover
+  pending_move:
+    to_team_id: payments
+    move_date: "@anchor+5wd"
+- id: TES-01024
+  first_name: Hugo
+  last_name: Schouten
+  title: Accountant
+  team_id: finance
+  office_id: rotterdam
+  phone: +31 6 1234 5025
+  home_address:
+    street: Lantaarnvisstraat 87
+    postcode: 1089 AB
+    city: Amsterdam
+  account_number: "4170190056"
+  joining_date: "2018-12-03"
+- id: TES-01025
+  first_name: Eline
+  last_name: Postma
+  title: Accounts Payable Specialist
+  team_id: finance
+  office_id: rotterdam
+  phone: +31 6 1234 5026
+  home_address:
+    street: Kwartelbeslaan 98
+    postcode: 1096 CD
+    city: Amsterdam
+  account_number: "4170197975"
+  joining_date: "2021-03-22"
+- id: TES-01026
+  first_name: Wouter
+  last_name: Huisman
+  title: Payroll Specialist
+  team_id: finance
+  office_id: amsterdam
+  phone: +31 6 1234 5027
+  home_address:
+    street: Mosselkokerhof 109
+    postcode: 2014 EF
+    city: Haarlem
+  account_number: "4170205894"
+  joining_date: "2022-11-07"
+- id: TES-01027
+  first_name: Gerrit
+  last_name: Kuiper
+  title: Workplace Manager
+  team_id: workplace
+  office_id: amsterdam
+  phone: +31 6 1234 5028
+  home_address:
+    street: Pepermolengracht 120
+    postcode: 1021 GH
+    city: Amsterdam
+  account_number: "4170213813"
+  joining_date: "2018-01-15"
+- id: TES-01028
+  first_name: Fleur
+  tussenvoegsel: van
+  last_name: Leeuwen
+  title: Office Coordinator
+  team_id: workplace
+  office_id: amsterdam
+  phone: +31 6 1234 5029
+  home_address:
+    street: Vlinderdaspad 131
+    postcode: 3528 JK
+    city: Utrecht
+  account_number: "4170221732"
+  joining_date: "2020-10-05"
+- id: TES-01029
+  first_name: Omar
+  last_name: Haddad
+  title: Facilities Technician
+  team_id: workplace
+  office_id: amsterdam
+  phone: +31 6 1234 5030
+  home_address:
+    street: Zonnewijzerkade 142
+    postcode: 1035 LM
+    city: Amsterdam
+  account_number: "4170229651"
+  joining_date: "2021-07-12"
+- id: TES-01030
+  first_name: Zoe
+  last_name: Dijkstra
+  title: Office Coordinator
+  team_id: workplace
+  office_id: rotterdam
+  phone: +31 6 1234 5031
+  home_address:
+    street: Tuinkabouterweg 153
+    postcode: 1542 NP
+    city: Zaandam
+  account_number: "4170237570"
+  joining_date: "2023-06-19"
+- id: TES-01042
+  first_name: Lisa
+  last_name: Groot
+  title: Software Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5032
+  home_address:
+    street: Kompasroosstraat 164
+    postcode: 3049 RS
+    city: Rotterdam
+  account_number: "4170245489"
+  joining_date: "@next_monday"
+  demo_role: joiner
+  load: demo_input
+- id: TES-01043
+  first_name: Max
+  last_name: Jacobs
+  title: Software Engineer, Payments
+  team_id: payments
+  office_id: amsterdam
+  phone: +31 6 1234 5033
+  home_address:
+    street: Wolkenschuiverlaan 175
+    postcode: 1156 TV
+    city: Amstelveen
+  account_number: "4170253408"
+  joining_date: "@anchor+10wd"
+  demo_role: second_joiner
+  load: demo_input

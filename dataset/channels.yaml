@@ -1,0 +1,25 @@
+# Zulip channels. Team members come from the bundles; extra_member_ids adds anyone else.
+channels:
+- name: general
+  description: Company wide news and chat
+  extra_member_ids:
+  - TES-01000
+- name: announcements
+  description: Announcements from leadership
+  extra_member_ids:
+  - TES-01000
+  - TES-01017
+- name: payments
+  description: The Payments team
+- name: engineering
+  description: Engineers from Payments and IT
+- name: it
+  description: The IT team
+- name: people
+  description: The People team
+- name: finance
+  description: The Finance team
+- name: workplace
+  description: The Workplace team
+  extra_member_ids:
+  - TES-01007
