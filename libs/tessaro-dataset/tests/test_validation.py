@@ -284,3 +284,56 @@ def test_handbook_problems(sources: RawSources) -> None:
     assert _has(
         problems_of(RawSources(sources.files, sources.bundles, [*pages, bad_meta])), "broken"
     )
+
+
+@pytest.mark.parametrize(
+    ("file", "key", "record_id", "what"),
+    [
+        ("employees.yaml", "employees", "TES-01004", "employee id"),
+        ("leave.yaml", "applications", "leave-0002", "application id"),
+        ("claims.yaml", "claims", "EXP-0002", "claim id"),
+        ("tickets.yaml", "tickets", "T-1002", "ticket id"),
+        ("bookings.yaml", "bookings", "book-0001", "booking id"),
+    ],
+)
+def test_duplicate_ids_are_reported(
+    sources: RawSources, file: str, key: str, record_id: str, what: str
+) -> None:
+    """covers: AC-6 (duplicate IDs)"""
+
+    def mutate(doc: dict[str, Any]) -> None:
+        doc[key].append(dict(find(doc, key, record_id)))
+
+    problems = problems_of(edited(sources, file, mutate))
+    assert _has(problems, file, record_id, f"duplicate {what}"), problems
+
+
+def test_article_earlier_than_the_one_before_is_reported(sources: RawSources) -> None:
+    """covers: AC-6 (article times that go backwards)"""
+
+    def mutate(doc: dict[str, Any]) -> None:
+        articles = find(doc, "tickets", "T-1001")["articles"]
+        articles[1]["at"] = "@anchor-2dT10:00"
+
+    problems = problems_of(edited(sources, "tickets.yaml", mutate))
+    assert _has(problems, "tickets.yaml", "T-1001", "goes back in time"), problems
+
+
+def test_pending_move_to_an_unknown_team_is_reported(sources: RawSources) -> None:
+    """covers: AC-6 (dangling references)"""
+
+    def mutate(doc: dict[str, Any]) -> None:
+        find(doc, "employees", "TES-01023")["pending_move"]["to_team_id"] = "sales"
+
+    problems = problems_of(edited(sources, "employees.yaml", mutate))
+    assert _has(problems, "TES-01023", "pending_move names an unknown team"), problems
+
+
+def test_every_problem_names_its_file_and_record(sources: RawSources) -> None:
+    """covers: AC-2, AC-6 (a bad date expression names the file and the record)"""
+
+    def mutate(doc: dict[str, Any]) -> None:
+        find(doc, "applications", "leave-0002")["to_date"] = "next week"
+
+    problems = problems_of(edited(sources, "leave.yaml", mutate))
+    assert any(p.startswith("leave.yaml [leave-0002]:") for p in problems), problems

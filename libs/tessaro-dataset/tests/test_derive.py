@@ -1,11 +1,11 @@
 """Derived values: groups, reports to, emails, IBANs and leave balances (AC-9, AC-11, AC-14)."""
 
 import re
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
-from tessaro_dataset import Dataset
+from tessaro_dataset import AMSTERDAM, Dataset, load_dataset
 from tessaro_dataset.balances import days_in_year, leave_balance
 from tessaro_dataset.dates import DateContext
 from tessaro_dataset.derive import (
@@ -19,7 +19,7 @@ from tessaro_dataset.derive import (
 )
 from tessaro_dataset.models import LeaveAllocation, LeaveApplication
 
-from .conftest import WEDNESDAY_10
+from .conftest import PATHS, WEDNESDAY_10
 
 CTX = DateContext(anchor=WEDNESDAY_10)
 
@@ -66,6 +66,7 @@ def test_identifiers(dataset: Dataset) -> None:
     assert {"Daan de Wit", "de Wit", "Wit", "Daan Wit", "@**Daan de Wit**"} <= set(
         directory_forms(daan)
     )
+    assert email(daan) in directory_forms(daan)  # covers: AC-7 (directory forms include the email)
     assert not iban_is_valid("NL00XTSR0000000000")
     overridden = daan.model_copy(update={"email_override": "dw@tessaro.example"})
     assert email(overridden) == "dw@tessaro.example"
@@ -119,3 +120,20 @@ def test_leave_spanning_new_year_splits() -> None:
     assert (after.remaining, after.pending) == (22, 2)
     assert days_in_year(span, 2025) == 0
     assert date(2027, 1, 5) == span.to_date
+
+
+@pytest.mark.parametrize(
+    ("anchor", "years"),
+    [
+        (datetime(2026, 12, 31, 10, 0, tzinfo=AMSTERDAM), {2026, 2027}),
+        (datetime(2027, 1, 1, 10, 0, tzinfo=AMSTERDAM), {2027, 2028}),
+    ],
+)
+def test_allocations_cover_the_anchor_year_and_the_next(anchor: datetime, years: set[int]) -> None:
+    """covers: AC-14 (vacation allocations of 25 days for the anchor's year and the year after)"""
+    dataset = load_dataset(PATHS, anchor=anchor)
+    assert {a.year for a in dataset.allocations} == years
+    assert {a.days for a in dataset.allocations} == {25}
+    seed = {e.id for e in dataset.employees if e.is_seed}
+    for year in years:
+        assert {a.employee_id for a in dataset.allocations if a.year == year} == seed
