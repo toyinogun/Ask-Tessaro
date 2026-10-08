@@ -3,7 +3,9 @@ name = "tessaro-contracts"
 version = "0.1.0"
 description = "Typed, versioned tool contract models. Designed in the identity token and tool contracts spec (feature 4)."
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "pydantic>=2.12",
+]
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]

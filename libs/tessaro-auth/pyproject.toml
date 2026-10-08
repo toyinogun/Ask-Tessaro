@@ -3,7 +3,14 @@ name = "tessaro-auth"
 version = "0.1.0"
 description = "Token issue and verify. Designed in the identity token spec (feature 4)."
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "cryptography>=44",
+    "pydantic>=2.12",
+    "pydantic-settings>=2.11",
+    "pyjwt[crypto]>=2.10",
+    "starlette>=1.7.0",
+    "structlog>=25.4",
+]
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]
