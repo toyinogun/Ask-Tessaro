@@ -151,12 +151,12 @@ Truth table for a valid principal and a valid tool string (reasons sorted in the
 
 Ordered as a tracer bullet: one real allowed call through the real files and a real OPA first, then the deny paths, then the guards around it.
 
-1. [ ] Thin thread: add `ROLE_SCOPES` and `policy_export` (with the `tessaro-contracts` dependency), `git mv` the tools data to `policy/tools.json`, point `TOOLS_DATA` and every stale mention (see Files) at it, regenerate both files, write `gateway.rego` with `decision` for the allow path, one Rego test for the demo case, drop the "no Rego yet" guard from `just policy`, and check the Compose OPA by hand with the AC-11 request, satisfies **AC-1**, **AC-2**, **AC-3**, **AC-11**
-2. [ ] Deny reasons: `unknown_tool`, `scope_not_granted`, `write_needs_worker` and `kind_role_mismatch` through the shared `deny_reasons` helper, with their Rego tests including the doctored data case, satisfies **AC-4**, **AC-5**, **AC-6**
-3. [ ] Invalid input: `valid_principal`, `valid_tool`, both defaults, and the garbage input tests, satisfies **AC-7**
-4. [ ] Listing: `allowed_tools` on the same helper, with its tests, satisfies **AC-8**
-5. [ ] Grid and gates: the fixture tools, the full role by scope grid test, `opa fmt` and `opa check --strict` and 100% coverage in `just policy`, and the pre-commit `opa fmt` hook, satisfies **AC-9**
-6. [ ] Python guards: the drift test for `role_scopes.json` and the `ROLE_SCOPES` enum coverage test, satisfies **AC-2**, **AC-10**
+1. [x] Thin thread: add `ROLE_SCOPES` and `policy_export` (with the `tessaro-contracts` dependency), `git mv` the tools data to `policy/tools.json`, point `TOOLS_DATA` and every stale mention (see Files) at it, regenerate both files, write `gateway.rego` with `decision` for the allow path, one Rego test for the demo case, drop the "no Rego yet" guard from `just policy`, and check the Compose OPA by hand with the AC-11 request, satisfies **AC-1**, **AC-2**, **AC-3**, **AC-11**
+2. [x] Deny reasons: `unknown_tool`, `scope_not_granted`, `write_needs_worker` and `kind_role_mismatch` through the shared `deny_reasons` helper, with their Rego tests including the doctored data case, satisfies **AC-4**, **AC-5**, **AC-6**
+3. [x] Invalid input: `valid_principal`, `valid_tool`, both defaults, and the garbage input tests, satisfies **AC-7**
+4. [x] Listing: `allowed_tools` on the same helper, with its tests, satisfies **AC-8**
+5. [x] Grid and gates: the fixture tools, the full role by scope grid test, `opa fmt` and `opa check --strict` and 100% coverage in `just policy`, and the pre-commit `opa fmt` hook, satisfies **AC-9**
+6. [x] Python guards: the drift test for `role_scopes.json` and the `ROLE_SCOPES` enum coverage test, satisfies **AC-2**, **AC-10**
 
 ## Consequences
 

@@ -120,11 +120,11 @@ The OPA policy and data that decide which roles may call which tools, with write
 **Done when:** policy tests cover every role and scope in PRD 8.2, and every human token is denied every write scope.
 spec [0005](../specs/0005-tool-policy/index.md) · code in `policy/`, `libs/tessaro-auth/`, `libs/tessaro-contracts/`
 - [x] Design it (spec): `/architect tool policy`
-- [ ] Build it: `/develop tool policy`
-  - [ ] Thin thread: typed role scopes, flat `policy/` with generated data, the allow path and the Compose OPA check (AC-1, AC-2, AC-3, AC-11)
-  - [ ] Deny paths: deny reasons, kind and role mismatch, invalid input and defaults (AC-4, AC-5, AC-6, AC-7)
-  - [ ] Listing: `allowed_tools` on the shared helper (AC-8)
-  - [ ] Guards: full role by scope grid, fmt, strict check and 100% coverage, enum and drift pytests (AC-9, AC-10)
+- [x] Build it: `/develop tool policy`
+  - [x] Thin thread: typed role scopes, flat `policy/` with generated data, the allow path and the Compose OPA check (AC-1, AC-2, AC-3, AC-11)
+  - [x] Deny paths: deny reasons, kind and role mismatch, invalid input and defaults (AC-4, AC-5, AC-6, AC-7)
+  - [x] Listing: `allowed_tools` on the shared helper (AC-8)
+  - [x] Guards: full role by scope grid, fmt, strict check and 100% coverage, enum and drift pytests (AC-9, AC-10)
 - [ ] Verify it: `/check verify tool policy`
 - [ ] Test it: `/test tool policy`
 - [ ] Review it (fresh model): `/check review tool policy`
