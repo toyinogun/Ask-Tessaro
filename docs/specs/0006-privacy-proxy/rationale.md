@@ -83,3 +83,20 @@ The smaller calls follow the same pull toward safety with the least machinery: H
 - **Partial overlaps**: merged into one span with the winner's type; a half masked name would be a leak.
 - **Expiry consistency**: a `touch` script plus `noeviction` keeps the three keys living and dying together; partly present keys fail closed rather than renumber.
 - **Test doubles**: `fakeredis[lua]` for the store (the allocation script needs Lua) and `httpx.MockTransport` for the analyzer and upstream, so `just check` needs no containers; the real analyzer runs under the `presidio` marker in its own CI job.
+
+## Update 2026-10-09: findings from /check verify
+
+Running the real proxy against live Presidio and Redis showed three gaps in the contract, and one spot where the code was looser than the spec. The engineer chose each fix below.
+
+**Merged span key (AC-5 vs AC-15).** "Jan Bakker" (not an employee) is found by the analyzer, and its surname "Bakker" is a directory form. The old AC-15 merged the two and kept the employee's key, so the reply named Pieter Bakker. That breaks AC-5 ("any value outside the directory is keyed by its text") and would point a tool call at the wrong person.
+- Chosen: a merged span wider than an employee's directory form is keyed by its own text. Still fully masked; restores exactly what was written. Con: a real employee written with extra words loses the link to their usual placeholder.
+- Rejected: keep the employee key. Simple, but restores the wrong person.
+- Rejected: do not merge, mask the parts apart. Leaks the extra words (the first name) and still restores the wrong person.
+
+**Possessive.** Presidio includes `'s` in a name span ("Daan de Wit's"). With the new merge rule that would give Daan a second placeholder. Trimming a trailing `'s` or `’s` off analyzer spans lets the directory match win cleanly. Con: a name that truly ends in `'s` loses two characters from its analyzer span; the directory and patterns still cover dataset values.
+
+**Redis retry (AC-8).** After a Redis restart, one request failed on a stale pooled connection. One retry on a connection error or timeout, with health checks on idle connections, removes that without weakening fail closed: both Lua scripts are safe to repeat, and a second failure still gives 503. Rejected: no retry, which leaves a spurious 503 after every Redis restart.
+
+**Fail closed setting (AC-8).** The spec already said only `true` is allowed; pydantic's bool parsing also accepts `yes`, `1` and `on`. The criterion now names the literal rule so the code can be tightened.
+
+**Log line on failure (AC-12).** Failed requests already logged `model_call_failed`; AC-12 now says so, so "one line per request" holds for errors too.
