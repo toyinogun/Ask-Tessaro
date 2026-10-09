@@ -1,7 +1,7 @@
 # 0004. Record access model in OpenFGA, with separation of duties and an org level IT approver
 
 **Date**: 2026-10-08
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

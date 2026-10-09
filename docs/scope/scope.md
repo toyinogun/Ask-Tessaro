@@ -21,7 +21,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 2 | Coding standards & tooling | Foundation (no cluster) | done |
 | 3 | Fictional company dataset | Foundation (no cluster) | done |
 | 4 | Identity token & tool contracts | Foundation (no cluster) | done |
-| 5 | Record access model | Foundation (no cluster) | in-progress |
+| 5 | Record access model | Foundation (no cluster) | done |
 | 6 | Tool policy | Foundation (no cluster) | planned |
 | 7 | Privacy proxy | Foundation (no cluster) | planned |
 | 8 | Cluster investigation & baseline | Foundation (cluster) | planned |
@@ -99,7 +99,7 @@ spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `li
 - [x] Review it (fresh model): `/check review identity token & tool contracts`
 - [x] Document it: `/document identity token & tool contracts`
 
-### 5. Record access model · in-progress · GA
+### 5. Record access model · done · GA
 The OpenFGA model from PRD 8.3 (owner, team, manager, time boxed stand in, HR advisor, lifecycle case) with CLI test files. Decides whose records anyone may see or approve. No cluster needed.
 **Done when:** the model passes CLI tests for self access, manager leave dates, expired stand ins, cross team attempts and HR advisor scope, using tuples generated from the dataset.
 spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `libs/tessaro-dataset/`
@@ -113,7 +113,7 @@ spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `li
 - [x] Verify it: `/check verify record access model`
 - [x] Test it: `/test record access model`
 - [x] Review it (fresh model): `/check review record access model`
-- [ ] Document it: `/document record access model`
+- [x] Document it: `/document record access model`
 
 ### 6. Tool policy · needs a decision · GA
 The OPA policy and data that decide which roles may call which tools, with write scopes usable only by workflow worker tokens. No cluster needed.
