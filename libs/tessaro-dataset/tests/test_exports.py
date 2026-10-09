@@ -292,3 +292,16 @@ def test_create_actions_carry_the_joiner_record(dataset: Dataset) -> None:
     assert second["employee"] == "TES-01043"
     assert second["date_of_joining"] > lisa["date_of_joining"]
     assert [a.demo_step for a in creates] == [3, 5]
+
+
+def test_directory_carries_the_privacy_proxy_exact_matches(dataset: Dataset) -> None:
+    """covers: spec 0006 AC-16 (phone, IBAN, street and postcode on every entry)"""
+    entries = {e.employee_id: e for e in export_directory(dataset).entries}
+    daan = entries["TES-01005"]
+    assert daan.phone == "+31 6 1234 5006"
+    assert daan.street == "Zonnewijzerkade 58"
+    assert daan.postcode == "1045 LM"
+    assert daan.iban.startswith("NL")
+    assert daan.iban[4:8] == "XTSR"
+    assert iban_is_valid(daan.iban)
+    assert all(e.phone and e.iban and e.street and e.postcode for e in entries.values())

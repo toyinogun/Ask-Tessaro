@@ -1,21 +1,30 @@
-from fastapi.testclient import TestClient
+import httpx
 
-from tessaro_privacy_proxy.main import build_app
-from tessaro_privacy_proxy.settings import Settings
+from tessaro_privacy_proxy.analyzer.fake import FakeAnalyzer
 
-
-def test_healthz() -> None:
-    client = TestClient(build_app())
-    assert client.get("/healthz").json() == {"status": "ok"}
+from .conftest import Proxy, ProxyFactory
 
 
-def test_service_name_default() -> None:
-    assert Settings().service_name == "privacy-proxy"
+async def test_healthz(proxy: Proxy) -> None:
+    response = await proxy.client.get("/healthz")
+    assert response.json() == {"status": "ok"}
 
 
-def test_readyz_is_ready_and_echoes_the_request_id() -> None:
-    client = TestClient(build_app())
-    response = client.get("/readyz", headers={"X-Request-ID": "svc-1"})
-    assert response.status_code == 200
-    assert response.json() == {"status": "ready", "checks": {}}
+async def test_request_id_is_echoed(proxy: Proxy) -> None:
+    response = await proxy.client.get("/healthz", headers={"X-Request-ID": "svc-1"})
     assert response.headers["X-Request-ID"] == "svc-1"
+
+
+async def test_readyz_checks_the_analyzer_and_redis(make_proxy: ProxyFactory) -> None:
+    """covers: AC-11"""
+    healthy = httpx.MockTransport(lambda _r: httpx.Response(200, json={}))
+    ready = await make_proxy(analyzer_transport=healthy).client.get("/readyz")
+    assert ready.status_code == 200
+    assert ready.json() == {"status": "ready", "checks": {"analyzer": True, "redis": True}}
+
+    down = httpx.MockTransport(lambda _r: httpx.Response(503))
+    not_ready = await make_proxy(analyzer=FakeAnalyzer(), analyzer_transport=down).client.get(
+        "/readyz"
+    )
+    assert not_ready.status_code == 503
+    assert not_ready.json()["checks"] == {"analyzer": False, "redis": True}

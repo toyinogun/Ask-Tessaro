@@ -5,7 +5,8 @@ name: ask-tessaro
 services:
   redis:
     image: redis:8-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    # noeviction: a conversation's mapping keys must never vanish one at a time (spec 0006 AC-6)
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     ports: ["6379:6379"]
     volumes: [redis-data:/data]
     healthcheck:
@@ -36,7 +37,8 @@ services:
       - "8233:8233" # web UI
 
   presidio-analyzer:
-    image: mcr.microsoft.com/presidio-analyzer:latest
+    # Pinned by digest: the image the privacy proxy leak scan last passed against (spec 0006).
+    image: mcr.microsoft.com/presidio-analyzer@sha256:286e3fa7f3a7426e775e8564fe1870f1ba8f999d3ab8bbb8cc46a44355d9d6e9
     ports: ["5002:3000"]
 
 volumes:
