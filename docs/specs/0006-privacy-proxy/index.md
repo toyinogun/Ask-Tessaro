@@ -1,7 +1,7 @@
 # 0006. Privacy proxy with directory aware masking and an encrypted per conversation mapping
 
 **Date**: 2026-10-09
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 
@@ -161,14 +161,14 @@ Analyzer call: `POST {PRESIDIO_ANALYZER_URL}/analyze` with `{"text", "language":
 
 Ordered as a tracer bullet: one real request through every layer first (directory match, Redis mapping, fake upstream, restore), then the other detectors, then the guards, then the proof.
 
-1. Extend the `directory` export with `phone`, `iban`, `street`, `postcode`, with its tests, satisfies **AC-16**
-2. Thin thread: `Settings` (all variables above, fail fast, `PROXY_FAIL_CLOSED` only `true`), `just keys` filling the three proxy keys when empty, `.env.example`; the `Directory` loader and matcher; `MappingCipher`; `RedisMappingStore` with the `allocate` script and sliding expiry; `mask_request` and `restore_response` for plain string content; `UpstreamClient`; the route with bearer and conversation ID checks. One test (fakeredis, fake upstream) masks and restores Daan de Wit across two turns; one manual run against `just up` Redis, satisfies **AC-1**, **AC-4**, **AC-5**, **AC-6**
-3. Detectors: `HttpAnalyzer` (with chunking) and `FakeAnalyzer`, the `EMPLOYEE_ID`, `HOME_ADDRESS`, Dutch phone and NL IBAN patterns, overlap resolution with merging, the score threshold, the usefulness sentence, satisfies **AC-3**, **AC-15**, **AC-17**
-4. Full scope: system and tool roles, content arrays, earlier tool call arguments, dropping `user`, message `name` and inbound headers; single pass restore of content, `refusal` and tool call arguments, removing `reasoning_content` and `logprobs`, the unknown placeholder warning, satisfies **AC-2**, **AC-7**
-5. Guards: fail closed on analyzer and Redis errors (including partly present keys), request validation with the replaced 422 handler and the 1 MiB limit, upstream 502 and 504, readiness checks, OpenAI error shape, satisfies **AC-8**, **AC-9**, **AC-10**, **AC-11**
-6. Concurrency test for `allocate`, the `touch` expiry test, and `maxmemory-policy noeviction` in `compose.yaml`, satisfies **AC-14**, **AC-6**
-7. The `model_call` log line and the log capture test, satisfies **AC-12**
-8. Leak scan: corpus generated from `dataset/`, the `presidio` marker (skipped unless `PRESIDIO_LIVE=1`), `just leak-scan`, and a second CI job that runs it with the analyzer as a service container, satisfies **AC-13**
+1. [x] Extend the `directory` export with `phone`, `iban`, `street`, `postcode`, with its tests, satisfies **AC-16**
+2. [x] Thin thread: `Settings` (all variables above, fail fast, `PROXY_FAIL_CLOSED` only `true`), `just keys` filling the three proxy keys when empty, `.env.example`; the `Directory` loader and matcher; `MappingCipher`; `RedisMappingStore` with the `allocate` script and sliding expiry; `mask_request` and `restore_response` for plain string content; `UpstreamClient`; the route with bearer and conversation ID checks. One test (fakeredis, fake upstream) masks and restores Daan de Wit across two turns; one manual run against `just up` Redis, satisfies **AC-1**, **AC-4**, **AC-5**, **AC-6**
+3. [x] Detectors: `HttpAnalyzer` (with chunking) and `FakeAnalyzer`, the `EMPLOYEE_ID`, `HOME_ADDRESS`, Dutch phone and NL IBAN patterns, overlap resolution with merging, the score threshold, the usefulness sentence, satisfies **AC-3**, **AC-15**, **AC-17**
+4. [x] Full scope: system and tool roles, content arrays, earlier tool call arguments, dropping `user`, message `name` and inbound headers; single pass restore of content, `refusal` and tool call arguments, removing `reasoning_content` and `logprobs`, the unknown placeholder warning, satisfies **AC-2**, **AC-7**
+5. [x] Guards: fail closed on analyzer and Redis errors (including partly present keys), request validation with the replaced 422 handler and the 1 MiB limit, upstream 502 and 504, readiness checks, OpenAI error shape, satisfies **AC-8**, **AC-9**, **AC-10**, **AC-11**
+6. [x] Concurrency test for `allocate`, the `touch` expiry test, and `maxmemory-policy noeviction` in `compose.yaml`, satisfies **AC-14**, **AC-6**
+7. [x] The `model_call` log line and the log capture test, satisfies **AC-12**
+8. [x] Leak scan: corpus generated from `dataset/`, the `presidio` marker (skipped unless `PRESIDIO_LIVE=1`), `just leak-scan`, and a second CI job that runs it with the analyzer as a service container, satisfies **AC-13**
 
 ## Consequences
 
