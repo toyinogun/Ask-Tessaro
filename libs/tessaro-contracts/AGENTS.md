@@ -7,7 +7,7 @@ Typed, versioned tool contract models shared by the gateway, tool servers and ag
 ## Stack
 
 - Python 3.13, import name `tessaro_contracts` (src layout: `src/tessaro_contracts/`, `tests/`)
-- Dependencies: pydantic only; never import the MCP SDK here (projections are plain dicts)
+- Dependencies: pydantic only; never import the MCP SDK here (projections are plain dicts), and never import `tessaro_auth` (auth depends on contracts, not the other way)
 
 ## Commands
 

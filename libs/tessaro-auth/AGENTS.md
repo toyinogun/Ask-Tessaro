@@ -7,7 +7,7 @@ Token issue and verify for the identity token: Ed25519 JWTs per issuer, human an
 ## Stack
 
 - Python 3.13, import name `tessaro_auth` (src layout: `src/tessaro_auth/`, `tests/`)
-- Dependencies: PyJWT (`pyjwt[crypto]`), cryptography, pydantic-settings, Starlette and structlog (the last two only in `edge.py`)
+- Dependencies: PyJWT (`pyjwt[crypto]`), cryptography, pydantic-settings, Starlette and structlog (the last two only in `edge.py`), tessaro-contracts (for `Scope` and the JSON export helpers)
 
 ## Commands
 
@@ -26,6 +26,7 @@ just keys   # write dev keys into .env; changes nothing when all three are set
 - `verify` refuses a token longer than `MAX_TOKEN_LENGTH` (8 KiB) as `malformed` before parsing anything, and maps every parse failure (including `RecursionError`) to `TokenInvalid`.
 - `TokenVerifySettings.keyset` and `TokenSigningSettings.signer` are cached per settings object: build settings once at startup and reuse them.
 - `just dev` hands every service a copy of `.env` without the `DEV_*_SIGNING_KEY` lines; only a minter gets its own key, as `TOKEN_SIGNING_KEY`.
+- `ROLE_SCOPES` in `roles.py` is the only source of OPA's `policy/role_scopes.json` (spec 0005); change the table, then run `just contracts`. Write scopes belong to `workflow_worker` only, and a test fails otherwise.
 - Root `AGENTS.md` rules apply.
 
 ## Agent skills
