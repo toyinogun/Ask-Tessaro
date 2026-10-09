@@ -152,6 +152,11 @@ invalid_principals := [
 	{"kind": "human", "roles": [1]},
 	{"kind": "human", "roles": ["root"]},
 	{"kind": "human", "roles": ["employee", "employee"]},
+	{"kind": "human", "roles": null},
+	{"kind": "human", "roles": ["employee", 1]},
+	{"kind": "human", "roles": ["Employee"]},
+	{"kind": "Human", "roles": ["employee"]},
+	{"kind": 5, "roles": ["employee"]},
 ]
 
 test_invalid_principal_with_a_known_tool if {
@@ -267,5 +272,44 @@ test_prd_8_2_grid if {
 			principal := {"kind": grid_kind(role), "roles": [role]}
 			fixture_decision(principal, grid_columns[i]) == grid_decisions[cell]
 		}
+	}
+}
+
+# AC-7: input that is not an object at all fails closed too
+
+test_input_that_is_not_an_object if {
+	every bad in ["employee", ["employee"], 42, null, true] {
+		gateway.decision == invalid with input as bad
+		tools := gateway.allowed_tools with input as bad with data.tools as fixture_tools
+		tools == []
+	}
+}
+
+# AC-3: one granting role is enough, whatever else the caller holds
+
+test_any_one_role_may_grant_the_scope if {
+	principal := {"kind": "human", "roles": ["it_service_desk", "employee"]}
+	every tool in ["it_read", "it_read_any", "workflow_read_any"] {
+		fixture_decision(principal, tool) == allowed
+	}
+	fixture_decision(principal, "hr_read_any") == denied(["scope_not_granted"])
+}
+
+# AC-4: an unknown tool never gets a scope reason, even when its name looks like a write
+
+test_unknown_tool_gets_no_scope_reasons if {
+	every principal in [employee, worker] {
+		gateway.decision == denied(["unknown_tool"]) with input as call(principal, "it_write")
+	}
+}
+
+# Data model: extra input keys are ignored, so personal data can never change a decision
+
+test_extra_input_keys_are_ignored if {
+	extra := {"email": "a.person@example.com", "employee_id": "TES-00001", "kind_override": "workflow_worker"}
+	every tool in ["hr_read", "team_read", "it_write"] {
+		with_extra := gateway.decision with input as object.union(call(employee, tool), extra)
+			with data.tools as fixture_tools
+		with_extra == fixture_decision(employee, tool)
 	}
 }

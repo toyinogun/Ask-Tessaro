@@ -45,6 +45,11 @@ def test_role_scopes_values_are_frozensets() -> None:
     assert all(isinstance(scopes, frozenset) for scopes in ROLE_SCOPES.values())
 
 
+def test_role_scopes_is_read_only() -> None:
+    with pytest.raises(TypeError):
+        ROLE_SCOPES[Role.EMPLOYEE] = frozenset(Scope)  # type: ignore[index]
+
+
 # AC-2: generated file shape and drift
 
 
@@ -82,6 +87,16 @@ def test_main_writes_and_reports(tmp_path: Path, capsys: pytest.CaptureFixture[s
     assert main(["--root", str(tmp_path)]) == 0
     assert (tmp_path / ROLE_SCOPES_DATA).exists()
     assert str(ROLE_SCOPES_DATA) in capsys.readouterr().out
+
+
+def test_main_defaults_to_the_repo_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "uv.lock").write_text("", encoding="utf-8")
+    nested = tmp_path / "libs" / "pkg"
+    nested.mkdir(parents=True)
+    monkeypatch.chdir(nested)
+    assert main([]) == 0
+    assert (tmp_path / ROLE_SCOPES_DATA).exists()
+    assert not (nested / ROLE_SCOPES_DATA).exists()
 
 
 def test_main_fails_on_a_write_error(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -139,3 +154,38 @@ def test_every_scope_is_in_the_rego_grid_fixture(scope: Scope) -> None:
     assert f'"{scope.value}"' in text, f"add {scope.value} to all_scopes in {GRID_TEST.name}"
     tool = scope.value.replace(":", "_")
     assert f'"{tool}"' in text, f"add {tool} to grid_columns in {GRID_TEST.name}"
+
+
+# AC-2, AC-9: the commands that keep the generated data and the policy honest stay wired in
+
+
+def _recipe(name: str) -> str:
+    """The body of one `justfile` recipe, up to the next blank line."""
+    text = (ROOT / "justfile").read_text(encoding="utf-8")
+    start = text.index(f"\n{name}:\n")
+    end = text.find("\n\n", start + 1)
+    return text[start : end if end != -1 else None]
+
+
+def test_just_contracts_writes_both_policy_files() -> None:
+    recipe = _recipe("contracts")
+    assert "python -m tessaro_contracts.export" in recipe
+    assert "python -m tessaro_auth.policy_export" in recipe
+
+
+def test_just_policy_runs_the_rego_gates() -> None:
+    recipe = _recipe("policy")
+    for command in (
+        "opa fmt --fail -l policy/",
+        "opa check --strict policy/",
+        "opa test policy/ -v --threshold 100",
+        "just authz-test",
+    ):
+        assert command in recipe, f"`just policy` lost `{command}`"
+    assert "no Rego yet" not in recipe
+
+
+def test_pre_commit_formats_rego() -> None:
+    config = (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    assert "entry: opa fmt --fail -l" in config
+    assert "files: \\.rego$" in config
