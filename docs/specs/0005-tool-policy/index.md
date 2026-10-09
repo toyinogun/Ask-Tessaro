@@ -178,7 +178,7 @@ Ordered as a tracer bullet: one real allowed call through the real files and a r
 
 ## Follow-up
 
-- [ ] Spec 0003 names `policy/data/tools.json` (Files, AC-18, Consequences); the path becomes `policy/tools.json` with this feature. Worth a one line update in 0003 when this ships.
+- [x] Spec 0003 names `policy/data/tools.json` (Files, AC-18, Consequences); the path becomes `policy/tools.json` with this feature. Worth a one line update in 0003 when this ships.
 - [ ] `libs/tessaro-contracts/AGENTS.md` mentions `policy/data/tools.json`; `/sync` should update it, and add a `policy/` context note once the Rego exists.
 - [ ] Feature 13 (tool gateway): build the OPA input exactly as in Value sourcing, deny on any OPA error or missing `result`, and write `result.reasons` into the audit line.
 - [ ] Feature 16 (assistant deploy): render the ConfigMap from `policy/gateway.rego`, `policy/tools.json` and `policy/role_scopes.json` only, excluding `*_test.rego`.
