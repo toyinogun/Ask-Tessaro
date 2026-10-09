@@ -35,6 +35,7 @@ uv run pytest libs/tessaro-dataset/tests --cov=tessaro_dataset -q
 - Derived values (reports to, Authentik groups, Zulip channels, leave balances, IBANs) are computed, never written by hand in YAML.
 - Mark a sensitive field with `Sensitive(...)` in its model; it may appear only in the `frappe_hr` export, and a test checks every other exporter.
 - Demo input joiners stay out of every export except `directory` and `demo_actions` unless `include_demo_inputs=True`.
+- The `directory` export is the privacy proxy's input (spec 0006): its `DirectoryEntry` fields (`forms`, `phone`, `iban`, `street`, `postcode`) must match `services/privacy-proxy/src/tessaro_privacy_proxy/masking/directory.py`, so change both together.
 - Export output is deterministic: sorted keys, every list sorted by its key.
 - `tests/test_real_dataset.py` and `tests/test_anchor_sweep.py` load the real `dataset/`, so a broken YAML edit fails CI.
 - `ALLOWED_RELATIONS` and `CONDITIONED_RELATIONS` in `registry.py` must equal the directly assignable relations in `authz/model.fga`; `tests/test_fga_model.py` parses the model and fails on drift, so change both together. IT approvers export as `user:<id> it_approver org:tessaro` (`FGA_ORG`).

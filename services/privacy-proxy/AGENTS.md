@@ -20,7 +20,7 @@ just image privacy-proxy
 just leak-scan   # the presidio marked leak scan, against the real analyzer from `just up`
 ```
 
-To run it locally, `.env` needs `PROXY_CLIENT_KEY`, `PROXY_MAPPING_KEY` and `PROXY_LOOKUP_KEY` (`just keys`) and a current `dataset/build/directory.json` (`just dataset --anchor 2026-10-07T10:00+02:00`); without them startup refuses.
+To run it locally, `.env` needs `PROXY_CLIENT_KEY`, `PROXY_MAPPING_KEY` and `PROXY_LOOKUP_KEY` (`just keys`) and a current `dataset/build/directory.json` (`just dataset --anchor 2026-10-07T10:00+02:00`); without them startup refuses. `PROXY_UPSTREAM_API_KEY` is required too, unless `PROXY_UPSTREAM_URL` is a loopback stub (plain `http` is accepted only there).
 
 ## Conventions
 
@@ -30,6 +30,8 @@ To run it locally, `.env` needs `PROXY_CLIENT_KEY`, `PROXY_MAPPING_KEY` and `PRO
 - Fail closed: the upstream is called only after every segment is masked; any analyzer or Redis error is a 503, and `PROXY_FAIL_CLOSED` accepts only the literal `true`.
 - Overlaps (`masking/spans.py`): directory beats pattern beats analyzer; a merged span wider than its best span is keyed by its own text, never by an employee; analyzer possessives (`'s`) are trimmed first.
 - Redis: `mapping_redis()` retries once on a dropped connection (both Lua scripts are safe to repeat); `readiness_redis()` never retries. Nothing personal is stored in plain text (HMAC fields, AES-GCM values).
+- Mapping integrity: each `rev` value is `<lookup field>:<ciphertext>` with the lookup field in the AES-GCM associated data, and `originals()` checks `fwd[field]` still names the placeholder; changing the stored format means changing both `mapping/cipher.py` and `mapping/redis_store.py`.
+- Request boundary: every string is NFC normalized before detection and sent upstream as NFC; only the top level parameters in `masking/models.py` `FORWARDED_PARAMETERS` go upstream, every other one is dropped.
 - Logs: one `model_call` or `model_call_failed` line per request, counts and codes only, never message text or exception messages.
 - Tests use the `FakeAnalyzer`, fakeredis and a capturing fake upstream (`tests/conftest.py`); `PRESIDIO_LIVE=1` enables the `presidio` marker.
 - MCP servers: redis/mcp-redis (recommended, for inspecting mapping keys while debugging) · Declined: `redis-core` (redis/agent-skills), `presidio-pii-detection` (testland, third party); no credible skill found for `cryptography`.
