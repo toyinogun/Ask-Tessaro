@@ -225,3 +225,47 @@ test_every_listed_tool_is_callable if {
 		}
 	}
 }
+
+# AC-9: every cell of the PRD 8.2 grid, against the real generated data.role_scopes.
+# ok: allowed; no: ["scope_not_granted"]; no_write: ["scope_not_granted", "write_needs_worker"].
+
+grid_columns := [
+	"it_read", "hr_read", "finance_read", "workplace_read", "kb_read", "queue_handoff",
+	"workflow_read", "team_read", "it_read_any", "workflow_read_any", "hr_read_any",
+	"identity_write", "it_write", "workplace_write",
+]
+
+grid := {
+	"employee": ["ok", "ok", "ok", "ok", "ok", "ok", "ok", "no", "no", "no", "no", "no_write", "no_write", "no_write"],
+	"manager": ["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "no", "no", "no", "no_write", "no_write", "no_write"],
+	"it_service_desk": ["no", "no", "no", "no", "no", "no", "no", "no", "ok", "ok", "no", "no_write", "no_write", "no_write"],
+	"people_advisor": ["no", "no", "no", "no", "no", "no", "no", "no", "no", "ok", "ok", "no_write", "no_write", "no_write"],
+	"workflow_worker": ["no", "no", "no", "no", "no", "no", "no", "no", "no", "no", "ok", "ok", "ok", "ok"],
+}
+
+grid_decisions := {
+	"ok": allowed,
+	"no": denied(["scope_not_granted"]),
+	"no_write": denied(["scope_not_granted", "write_needs_worker"]),
+}
+
+grid_kind(role) := "workflow_worker" if role == "workflow_worker"
+
+grid_kind(role) := "human" if role != "workflow_worker"
+
+test_grid_covers_every_scope_and_role if {
+	{replace(scope, ":", "_") | some scope in all_scopes} == {tool | some tool in grid_columns}
+	object.keys(grid) == object.keys(data.role_scopes)
+	every row in grid {
+		count(row) == count(grid_columns)
+	}
+}
+
+test_prd_8_2_grid if {
+	every role, row in grid {
+		every i, cell in row {
+			principal := {"kind": grid_kind(role), "roles": [role]}
+			fixture_decision(principal, grid_columns[i]) == grid_decisions[cell]
+		}
+	}
+}
