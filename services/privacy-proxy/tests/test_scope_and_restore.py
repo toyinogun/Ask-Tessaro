@@ -5,6 +5,10 @@ import json
 import pytest
 
 from tessaro_privacy_proxy.analyzer.fake import FakeAnalyzer
+from tessaro_privacy_proxy.mapping.redis_store import RedisMappingStore
+from tessaro_privacy_proxy.masking.directory import Directory, DirectoryEntry
+from tessaro_privacy_proxy.masking.mask import Masker
+from tessaro_privacy_proxy.masking.models import ChatRequest
 
 from .conftest import Json, Proxy, ProxyFactory, answer, everything_in, tool_call, user
 
@@ -136,3 +140,51 @@ async def test_odd_upstream_shapes_pass_through(proxy: Proxy) -> None:
     assert body["choices"][2]["message"]["tool_calls"][1]["function"]["arguments"] == 5
     proxy.upstream.reply = lambda _body: {"id": "no choices"}
     assert (await proxy.chat([user("hi")])).json() == {"id": "no choices"}
+
+
+async def test_only_known_parameters_go_upstream(proxy: Proxy) -> None:
+    """covers: AC-2 (free text parameters such as `prediction` and `metadata` never leave)"""
+    response = await proxy.chat(
+        [user("hi")],
+        prediction={"type": "content", "content": "Daan de Wit"},
+        metadata={"who": "Daan de Wit"},
+        temperature=0.2,
+        max_tokens=50,
+        tool_choice="auto",
+        response_format={"type": "json_object"},
+    )
+    assert response.status_code == 200
+    sent = proxy.upstream.bodies[0]
+    assert "prediction" not in sent
+    assert "metadata" not in sent
+    assert "Daan" not in everything_in(sent)
+    assert sent["temperature"] == 0.2
+    assert sent["max_tokens"] == 50
+    assert sent["tool_choice"] == "auto"
+    assert sent["response_format"] == {"type": "json_object"}
+
+
+async def test_decomposed_text_is_sent_and_matched_in_nfc(store: RedisMappingStore) -> None:
+    """covers: AC-4 (NFD input, as macOS or a copy and paste can produce, still matches)"""
+    entry = DirectoryEntry(
+        employee_id="TES-00003",
+        display_name="Zoë Bakir",
+        email="zoe.bakir@tessaro.example",
+        forms=("Zoë", "Bakir", "Zoë Bakir"),
+        phone="+31 6 1234 5003",
+        iban="NL00XTSR0000000003",
+        street="Teststraat 1",
+        postcode="1000 AA",
+    )
+    masker = Masker(
+        directory=Directory.from_entries([entry]),
+        analyzer=FakeAnalyzer(),
+        store=store,
+        score_threshold=0.4,
+    )
+    request = ChatRequest.model_validate(
+        {"model": "m", "messages": [user("Zoë Bakir and Zoë and café")]}
+    )
+    masked = await masker.mask_request(request, "c1")
+    assert masked.body["messages"][0]["content"] == "<PERSON_1> and <PERSON_1> and café"
+    assert await store.originals("c1", ["<PERSON_1>"]) == {"<PERSON_1>": "Zoë Bakir"}

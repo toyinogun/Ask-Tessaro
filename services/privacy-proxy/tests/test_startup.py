@@ -39,6 +39,10 @@ def test_defaults_and_derived_values(directory_file: Path) -> None:
         {"proxy_lookup_key": MAPPING_KEY[:-4]},
         {"proxy_score_threshold": 1.5},
         {"proxy_mapping_ttl_hours": 0},
+        {"proxy_lookup_key": MAPPING_KEY},
+        {"proxy_upstream_url": "http://api.deepseek.com"},
+        {"proxy_upstream_url": "ftp://api.deepseek.com"},
+        {"proxy_upstream_api_key": ""},
     ],
 )
 def test_bad_settings_stop_startup(directory_file: Path, override: dict[str, object]) -> None:
@@ -52,6 +56,13 @@ def test_fail_closed_accepts_only_the_literal_true(directory_file: Path, value: 
     """covers: AC-8"""
     with pytest.raises(ValidationError):
         make_settings(directory_file, proxy_fail_closed=value)
+
+
+@pytest.mark.parametrize("url", ["http://localhost:9000", "http://127.0.0.1:9000", "http://[::1]"])
+def test_a_loopback_upstream_may_use_http_and_no_key(directory_file: Path, url: str) -> None:
+    """A local fake upstream for development; anything else needs https and a key."""
+    settings = make_settings(directory_file, proxy_upstream_url=url, proxy_upstream_api_key="")
+    assert settings.proxy_upstream_url == url
 
 
 @pytest.mark.parametrize("value", ["true", "TRUE", True])
@@ -136,7 +147,7 @@ def test_settings_come_from_env_vars(directory_file: Path, monkeypatch: pytest.M
         "PROXY_MAPPING_KEY": MAPPING_KEY,
         "PROXY_LOOKUP_KEY": LOOKUP_KEY,
         "PROXY_DIRECTORY_PATH": str(directory_file),
-        "PROXY_UPSTREAM_API_KEY": "",
+        "PROXY_UPSTREAM_API_KEY": "upstream-secret",
         "PROXY_FAIL_CLOSED": "true",
         "LLM_MODEL_AGENT": "a",
         "LLM_MODEL_TOOLS": "b",

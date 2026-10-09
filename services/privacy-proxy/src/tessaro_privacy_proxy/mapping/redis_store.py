@@ -1,8 +1,8 @@
 """The conversation mapping in Redis: three hashes per conversation, two Lua scripts.
 
 Keys (the braces are a literal Redis hash tag, so all three share one slot):
-`proxy:conv:{<cid>}:fwd` lookup field to placeholder, `:rev` placeholder to ciphertext,
-`:seq` entity type to the last number issued.
+`proxy:conv:{<cid>}:fwd` lookup field to placeholder, `:rev` placeholder to
+`<lookup field>:<ciphertext>`, `:seq` entity type to the last number issued.
 """
 
 import re
@@ -25,7 +25,7 @@ for i = 1, 3 do redis.call('EXPIRE', KEYS[i], ARGV[1]) end
 return 1
 """
 
-# KEYS: fwd rev seq. ARGV: lookup field, entity type, ciphertext, ttl seconds.
+# KEYS: fwd rev seq. ARGV: lookup field, entity type, stored value, ttl seconds.
 ALLOCATE = """
 local placeholder = redis.call('HGET', KEYS[1], ARGV[1])
 if not placeholder then
@@ -39,6 +39,7 @@ return placeholder
 """
 
 _PLACEHOLDER = re.compile(r"<([A-Z_]+)_\d+>")
+_SEPARATOR = ":"  # never in a hex lookup field or a base64url ciphertext
 
 
 def conversation_keys(conversation_id: str) -> tuple[str, str, str]:
@@ -70,15 +71,16 @@ class RedisMappingStore:
         self, conversation_id: str, entity_type: EntityType, key: str, original: str
     ) -> str:
         """The placeholder for `key`, allocated atomically (AC-5, AC-14)."""
-        sealed = self.cipher.encrypt(conversation_id, entity_type, original)
+        field = self.cipher.lookup_field(key)
+        sealed = self.cipher.encrypt(conversation_id, entity_type, original, field)
         try:
             result = await self.redis.eval(
                 ALLOCATE,
                 3,
                 *conversation_keys(conversation_id),
-                self.cipher.lookup_field(key),
+                field,
                 str(entity_type),
-                sealed,
+                f"{field}{_SEPARATOR}{sealed}",
                 self.ttl_seconds,
             )
         except RedisError as exc:
@@ -88,18 +90,52 @@ class RedisMappingStore:
     async def originals(
         self, conversation_id: str, placeholders: Sequence[str]
     ) -> Mapping[str, str]:
-        """Decrypted originals of the placeholders this conversation issued."""
+        """Decrypted originals of the placeholders this conversation issued.
+
+        Each value must decrypt for its lookup field, and that field must still map to the
+        same placeholder; anything else means the stored data was altered: fail closed.
+        """
         if not placeholders:
             return {}
-        _, rev, _ = conversation_keys(conversation_id)
+        fwd, rev, _ = conversation_keys(conversation_id)
         try:
             stored = await self.redis.hmget(rev, list(placeholders))
         except RedisError as exc:
             raise MappingStoreUnavailable("mapping store refused read") from exc
-        found: dict[str, str] = {}
-        for placeholder, sealed in zip(placeholders, stored, strict=True):
-            match = _PLACEHOLDER.fullmatch(placeholder)
-            if sealed is None or match is None:
-                continue
-            found[placeholder] = self.cipher.decrypt(conversation_id, match[1], _text(sealed))
-        return found
+        found = [
+            _Stored(match[0], match[1], *_split(_text(value)))
+            for match, value in zip(map(_PLACEHOLDER.fullmatch, placeholders), stored, strict=True)
+            if match is not None and value is not None
+        ]
+        if not found:
+            return {}
+        try:
+            owners = await self.redis.hmget(fwd, [item.field for item in found])
+        except RedisError as exc:
+            raise MappingStoreUnavailable("mapping store refused read") from exc
+        if any(
+            owner is None or _text(owner) != i.placeholder
+            for i, owner in zip(found, owners, strict=True)
+        ):
+            raise MappingStoreUnavailable("a stored mapping value is not its placeholder's")
+        return {
+            i.placeholder: self.cipher.decrypt(conversation_id, i.entity_type, i.sealed, i.field)
+            for i in found
+        }
+
+
+@dataclass(frozen=True)
+class _Stored:
+    """One `rev` entry, split into its parts."""
+
+    placeholder: str
+    entity_type: str
+    field: str
+    sealed: str
+
+
+def _split(value: str) -> tuple[str, str]:
+    field, separator, sealed = value.partition(_SEPARATOR)
+    if not separator:
+        raise MappingStoreUnavailable("a stored mapping value has no lookup field")
+    return field, sealed

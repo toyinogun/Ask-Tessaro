@@ -1,12 +1,34 @@
 """The OpenAI chat completion request, as far as masking needs to understand it.
 
-Message level fields the proxy does not know are dropped (so nothing unmasked slips
-through); top level parameters it does not know (`tools`, `temperature`, ...) pass through.
+Fields the proxy does not know are dropped, so nothing unmasked slips through: at message
+level everything but the known fields, at top level everything but `FORWARDED_PARAMETERS`.
 """
 
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+FORWARDED_PARAMETERS = frozenset(
+    {
+        "tools",  # definitions we write, trusted static content (spec 0006 AC-2)
+        "tool_choice",
+        "parallel_tool_calls",
+        "response_format",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "max_completion_tokens",
+        "n",
+        "stop",
+        "seed",
+        "presence_penalty",
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "top_logprobs",
+    }
+)
+"""Top level parameters forwarded as they are; free text ones (`prediction`, `metadata`) are not."""
 
 
 class ContentPart(BaseModel):
@@ -50,7 +72,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """A chat completion request. Extra top level fields are kept and forwarded as they are."""
+    """A chat completion request. Extra top level fields are kept; only some are forwarded."""
 
     # Any: OpenAI parameters the proxy passes through untouched have open ended JSON shapes.
     model_config = ConfigDict(frozen=True, extra="allow")
@@ -61,5 +83,5 @@ class ChatRequest(BaseModel):
     user: str | None = None
 
     def passthrough(self) -> dict[str, Any]:
-        """The top level fields the proxy forwards unchanged (everything it does not rewrite)."""
-        return dict(self.model_extra or {})
+        """The `FORWARDED_PARAMETERS` the caller set, unchanged; every other extra is dropped."""
+        return {k: v for k, v in (self.model_extra or {}).items() if k in FORWARDED_PARAMETERS}
