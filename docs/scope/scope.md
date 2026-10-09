@@ -23,7 +23,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 4 | Identity token & tool contracts | Foundation (no cluster) | done |
 | 5 | Record access model | Foundation (no cluster) | done |
 | 6 | Tool policy | Foundation (no cluster) | done |
-| 7 | Privacy proxy | Foundation (no cluster) | planned |
+| 7 | Privacy proxy | Foundation (no cluster) | in-progress |
 | 8 | Cluster investigation & baseline | Foundation (cluster) | planned |
 | 9 | Identity & chat systems | Foundation (cluster) | planned |
 | 10 | Platform services | Foundation (cluster) | planned |
@@ -130,10 +130,20 @@ spec [0005](../specs/0005-tool-policy/index.md) · code in `policy/`, `libs/tess
 - [x] Review it (fresh model): `/check review tool policy`
 - [x] Document it: `/document tool policy`
 
-### 7. Privacy proxy · needs a decision · GA
+### 7. Privacy proxy · in-progress · GA
 OpenAI compatible proxy in front of the model: masks names, emails, phones, IBANs, addresses and employee IDs (plus a directory recognizer), keeps consistent encrypted placeholders per conversation, restores them in answers and tool arguments, and fails closed. The core runs locally. No cluster needed.
 **Done when:** a leak scan over test conversations finds zero dataset names or emails in outgoing payloads, the Dutch name trap is caught, tool call arguments come back restored, and the proxy refuses to call the model when the analyzer is down.
-- [ ] Design it (spec): `/architect privacy proxy`
+spec [0006](../specs/0006-privacy-proxy/index.md) · code in `services/privacy-proxy/`, `libs/tessaro-dataset/`
+- [x] Design it (spec): `/architect privacy proxy`
+- [ ] Build it: `/develop privacy proxy`
+  - [ ] Thin thread: directory export fields, settings and keys, directory matcher, encrypted Redis mapping, mask and restore through a fake upstream (AC-1, AC-4, AC-5, AC-6, AC-16)
+  - [ ] Detectors and full scope: analyzer with chunking, own patterns, overlap merging, every message part, tool call argument restore (AC-2, AC-3, AC-7, AC-15, AC-17)
+  - [ ] Guards: fail closed, request validation, upstream errors, readiness, concurrency and expiry, the `model_call` log (AC-8, AC-9, AC-10, AC-11, AC-12, AC-14)
+  - [ ] Proof: leak scan from the dataset, `presidio` marker, `just leak-scan` and its CI job (AC-13)
+- [ ] Verify it: `/check verify privacy proxy`
+- [ ] Test it: `/test privacy proxy`
+- [ ] Review it (fresh model): `/check review privacy proxy`
+- [ ] Document it: `/document privacy proxy`
 
 ## Foundation (cluster)
 
