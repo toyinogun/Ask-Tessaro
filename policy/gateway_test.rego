@@ -313,3 +313,28 @@ test_extra_input_keys_are_ignored if {
 		with_extra == fixture_decision(employee, tool)
 	}
 }
+
+# AC-4, review finding 1: a known tool whose data has no usable scope fails closed
+
+broken_tools := {
+	"no_scope": {"owner": "test", "version": "1.0"},
+	"null_scope": {"owner": "test", "scope": null, "version": "1.0"},
+	"number_scope": {"owner": "test", "scope": 7, "version": "1.0"},
+	"not_an_object": "hr:read",
+}
+
+test_tool_without_a_usable_scope_is_denied if {
+	every principal in [employee, worker, {"kind": "human", "roles": human_roles}] {
+		every tool, _ in broken_tools {
+			d := gateway.decision with input as call(principal, tool) with data.tools as broken_tools
+			d == denied(["scope_not_granted"])
+		}
+	}
+}
+
+test_tool_without_a_usable_scope_is_not_listed if {
+	every principal in [employee, worker] {
+		tools := gateway.allowed_tools with input as principal with data.tools as broken_tools
+		tools == []
+	}
+}

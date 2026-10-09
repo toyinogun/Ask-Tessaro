@@ -49,10 +49,11 @@ deny_reasons(t) := {reason | some reason in reason_names; applies(reason, t)} if
 
 applies("unknown_tool", t) if not data.tools[t]
 
-# Reported for known tools only; an unknown tool has no scope to grant.
+# Reported for known tools only; an unknown tool has no scope to grant. A known tool
+# with no string scope is granted to no one, so broken tool data fails closed.
 applies("scope_not_granted", t) if {
-	scope := data.tools[t].scope
-	not granted(scope)
+	data.tools[t]
+	not granted(tool_scope(t))
 }
 
 # Holds whatever data.role_scopes says: no human ever uses a write scope.
@@ -62,6 +63,12 @@ applies("write_needs_worker", t) if {
 }
 
 applies("kind_role_mismatch", _) if kind_role_mismatch
+
+# The tool's scope when it is a string, else null, which no role can grant.
+tool_scope(t) := scope if {
+	scope := data.tools[t].scope
+	is_string(scope)
+} else := null
 
 granted(scope) if {
 	some role in input.roles
