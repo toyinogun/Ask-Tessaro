@@ -25,6 +25,7 @@ uv run pytest libs/tessaro-dataset/tests --cov=tessaro_dataset -q
 - `dates.py`: the `@anchor` date grammar (`+Nd`, `+Nwd`, `+Nh`, `@next_monday`, `@standin_end`, `@anchor_year`); all timestamps are `Europe/Amsterdam` aware
 - `loader.py` reads the files, `assemble.py` resolves dates and builds models, `validate.py` and `minimums.py` collect problems, `derive.py` and `balances.py` compute derived values
 - `models/`: frozen pydantic models by domain; `registry.py`: fixed names (groups, profiles, demo roles, `ALLOWED_RELATIONS`)
+- `fgaload.py`: the Python half of `just authz-load`; checks the `fga store create` and `fga tuple write` JSON, then sets the store and model IDs in `.env` (`python -m tessaro_dataset.fgaload ids|env`)
 - `exports/`: one module per target, each returning frozen `ExportRecord`s; `EXPORTERS` in `exports/__init__.py` lists them
 
 ## Conventions
@@ -36,6 +37,7 @@ uv run pytest libs/tessaro-dataset/tests --cov=tessaro_dataset -q
 - Demo input joiners stay out of every export except `directory` and `demo_actions` unless `include_demo_inputs=True`.
 - Export output is deterministic: sorted keys, every list sorted by its key.
 - `tests/test_real_dataset.py` and `tests/test_anchor_sweep.py` load the real `dataset/`, so a broken YAML edit fails CI.
+- `ALLOWED_RELATIONS` and `CONDITIONED_RELATIONS` in `registry.py` must equal the directly assignable relations in `authz/model.fga`; `tests/test_fga_model.py` parses the model and fails on drift, so change both together. IT approvers export as `user:<id> it_approver org:tessaro` (`FGA_ORG`).
 - Root `AGENTS.md` rules apply.
 
 _Drafted by /sync from the introducing change, worth a quick human pass._

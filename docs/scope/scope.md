@@ -110,9 +110,9 @@ spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `li
   - [x] Stand in window: start, inside, end and the second stand in (AC-4, AC-5)
   - [x] Lifecycle cases: fixture cases, separation of duties and the mover (AC-7, AC-8)
   - [x] Local load: `just authz-load` and the `.env.example` lines (AC-11)
-- [ ] Verify it: `/check verify record access model`
-- [ ] Test it: `/test record access model`
-- [ ] Review it (fresh model): `/check review record access model`
+- [x] Verify it: `/check verify record access model`
+- [x] Test it: `/test record access model`
+- [x] Review it (fresh model): `/check review record access model`
 - [ ] Document it: `/document record access model`
 
 ### 6. Tool policy · needs a decision · GA
