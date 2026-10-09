@@ -72,15 +72,15 @@ jobs:
     name: privacy leak scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      presidio:
-        image: mcr.microsoft.com/presidio-analyzer@sha256:286e3fa7f3a7426e775e8564fe1870f1ba8f999d3ab8bbb8cc46a44355d9d6e9
-        ports: ["5002:3000"]
-        # The image's own healthcheck can give up while the model is still loading on a slow
-        # runner; the "Wait for the analyzer" step below is the only readiness gate.
-        options: --no-healthcheck
+    env:
+      PRESIDIO_IMAGE: mcr.microsoft.com/presidio-analyzer@sha256:286e3fa7f3a7426e775e8564fe1870f1ba8f999d3ab8bbb8cc46a44355d9d6e9
     steps:
       - uses: actions/checkout@v7.0.1
+
+      # Started by hand, not as a service container: the runner's service health gate gives up
+      # while the model is still loading on a slow runner. The wait step below is the only gate.
+      - name: Start the analyzer
+        run: docker run --detach --name presidio --publish 5002:3000 "$PRESIDIO_IMAGE"
 
       - uses: astral-sh/setup-uv@v10.2.0
         with:
@@ -94,11 +94,12 @@ jobs:
 
       - name: Wait for the analyzer
         run: |
-          for _ in $(seq 1 60); do
+          for _ in $(seq 1 120); do
             curl -fsS http://localhost:5002/health && exit 0
             sleep 5
           done
           echo "the Presidio analyzer never became healthy" >&2
+          docker logs presidio >&2
           exit 1
 
       - name: Run the leak scan
