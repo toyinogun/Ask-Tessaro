@@ -10,6 +10,7 @@ dependencies = [
     "pyjwt[crypto]>=2.10",
     "starlette>=1.0",
     "structlog>=25.4",
+    "tessaro-contracts",
 ]
 
 [build-system]

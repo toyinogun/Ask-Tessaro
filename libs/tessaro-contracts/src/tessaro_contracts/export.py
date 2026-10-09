@@ -1,7 +1,7 @@
 """`python -m tessaro_contracts.export`: write snapshots and OPA tool data (`just contracts`).
 
 Writes each contract's MCP projection to `libs/tessaro-contracts/schemas/<name>.json`
-and the OPA tool data to `policy/data/tools.json`. Before writing anything it checks
+and the OPA tool data to `policy/tools.json`. Before writing anything it checks
 every contract against its committed snapshot with the version rule (AC-19), and
 writes nothing when one fails. A snapshot with no contract is a removed or renamed
 released tool, which fails too.
@@ -24,7 +24,7 @@ from tessaro_contracts.registry import ALL_CONTRACTS
 from tessaro_contracts.schema_rules import compatibility_error
 
 SCHEMAS_DIR: Final = Path("libs/tessaro-contracts/schemas")
-TOOLS_DATA: Final = Path("policy/data/tools.json")
+TOOLS_DATA: Final = Path("policy/tools.json")
 
 
 def repo_root(start: Path) -> Path:
