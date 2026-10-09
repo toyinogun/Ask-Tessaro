@@ -62,7 +62,7 @@ Every call in Tessaro carries a short lived signed token (a JWT, a small signed 
 - **AC-17**: `get_my_leave` 1.0 exists with owner `people-team`, scope `hr:read`, identity `self`, authorization `OpenFGA check can_view_own_data on employee:<sub>`, an empty input model, and this output: `balances`, a list of 0 or 1 entries (vacation for the current year; empty when no allocation exists) with `leave_type` (`vacation`), `year` (int), `entitled_days`, `taken_days`, `pending_days`, `remaining_days` (ints, whole working days); `upcoming`, at most 50 entries with `application_id` (str), `leave_type` (`vacation`, `sick`, `parental` or `special`), `from_date` and `to_date` (ISO dates), `status` (`open` or `approved`); and `truncated` (bool). Its `never_returns` is `reason`, `absence_reason`, `medical_note`, `notes`, `description`, `salary`, and AC-13 passes for it.
 
 *Snapshots, versions and policy data*
-- **AC-18**: `just contracts` writes each contract's MCP projection to `libs/tessaro-contracts/schemas/<name>.json` and the OPA tool data to `policy/data/tools.json` (`{"tools": {<name>: {"scope", "version", "owner"}}}`), both as JSON with sorted keys, two space indent and a trailing newline. A test (finding the repo root by walking up to `uv.lock`) fails when either committed file differs from what the registry generates now.
+- **AC-18**: `just contracts` writes each contract's MCP projection to `libs/tessaro-contracts/schemas/<name>.json` and the OPA tool data to `policy/tools.json` (`{"tools": {<name>: {"scope", "version", "owner"}}}`), both as JSON with sorted keys, two space indent and a trailing newline. A test (finding the repo root by walking up to `uv.lock`) fails when either committed file differs from what the registry generates now.
 - **AC-19**: A test compares each contract's projection to its committed snapshot. A contract with no snapshot yet passes. Otherwise:
   - no change with the same version passes; no change with a different version fails ("version changed without a contract change");
   - a change with the same version fails;
@@ -108,7 +108,7 @@ libs/tessaro-contracts/src/tessaro_contracts/
   testing.py     assert_contract_ok(contract) (runs the AC-13 checks plus a snapshot comparison, for tool server test suites); assert_result_matches(contract, result)
   people/get_my_leave.py
 libs/tessaro-contracts/schemas/<name>.json   committed snapshots
-policy/data/tools.json                       generated OPA tool data (feature 6 adds role_scopes)
+policy/tools.json                            generated OPA tool data (moved from policy/data/ by spec 0005, which adds role_scopes.json)
 ```
 
 **Enumerations**:
@@ -241,7 +241,7 @@ Ordered Tracer Bullet style: first one thin thread through both libraries (mint,
 7. [x] Dev keys: `devkeys.py`, `just keys` (run by `just init`), the `just dev` key mapping, `.env.example` updates, satisfies **AC-10**
 8. [x] Contract checks: all AC-13 validators in `contract.py` and `schema_rules.py`, `WriteSpec`, `build_registry`, and the `testing.py` helpers, satisfies **AC-13**, **AC-14**, **AC-17**
 9. [x] Results and errors: `ToolResult`, `ToolError`, `ToolErrorCode`, `to_mcp_result`, `to_mcp_error`, satisfies **AC-16**
-10. [x] Export and drift: `export.py`, `just contracts`, committed `schemas/get_my_leave.json` and `policy/data/tools.json`, the drift tests, satisfies **AC-18**
+10. [x] Export and drift: `export.py`, `just contracts`, committed `schemas/get_my_leave.json` and `policy/tools.json`, the drift tests, satisfies **AC-18**
 11. [x] Compatibility rule: the breaking change diff in `schema_rules.py` and the snapshot version test, satisfies **AC-19**
 12. [x] Coverage at 80% or more for both packages, `mypy --strict` clean, `just check` green, satisfies every AC
 
@@ -259,7 +259,7 @@ Ordered Tracer Bullet style: first one thin thread through both libraries (mint,
 - Two key pairs mean two rotations to manage, each with an 11 minute overlap.
 - Breaking changes create `_v2` tools that live beside the old ones until the agent moves over, so the tool list grows. The conservative breaking rule may also flag harmless schema tweaks, forcing a new name.
 - Env names change from spec 0001 and PRD 14.3 (`TOKEN_VERIFY_KEY` becomes `TOKEN_VERIFY_KEYS`, plus `TOKEN_SIGNING_KID`).
-- Generated files (`schemas/*.json`, `policy/data/tools.json`) must be regenerated with `just contracts` whenever a contract changes; forgetting it fails CI.
+- Generated files (`schemas/*.json`, `policy/tools.json`) must be regenerated with `just contracts` whenever a contract changes; forgetting it fails CI.
 - The response `X-Request-ID` can differ from the token's request ID when a caller sends a mismatched header; logs flag it.
 
 **Neutral**:
@@ -274,7 +274,7 @@ Ordered Tracer Bullet style: first one thin thread through both libraries (mint,
 - [x] The spec 0001 follow up item "Feature 4 must decide who mints workflow worker tokens" is answered here: the jml-worker, through `tessaro-auth`, with its own key in the `workflows` namespace.
 - [x] Spec 0001 and PRD 14.3 list `TOKEN_VERIFY_KEY`; note the rename when those are next touched.
 - [ ] Feature 9 (identity systems) must load `employee_id` as an Authentik user attribute so the adapter can fill `sub`.
-- [ ] Feature 6 (tool policy) must use the `Role` names from `tessaro_auth.claims` as `role_scopes` keys and read `policy/data/tools.json` rather than writing tool scopes by hand.
+- [x] Feature 6 (tool policy) must use the `Role` names from `tessaro_auth.claims` as `role_scopes` keys and read `policy/tools.json` rather than writing tool scopes by hand (done in spec 0005).
 - [ ] Feature 12 (Zulip adapter) decides the exact user facing reply when `MintRefused` is raised (suggested: "I can't verify your account. Please contact IT.").
 - [ ] Feature 13 (tool gateway) should consider per server audiences (the gateway exchanging a token per upstream) to close the shared audience replay window.
 - [ ] The MCP SDK spike from spec 0001 should confirm, before features 13 and 14, that a tool handler can read the request headers (for `principal_from_headers`) and that `outputSchema`, `structuredContent` and `_meta` pass through `langchain-mcp-adapters` unchanged. This feature's dicts follow the MCP tool shape and don't depend on the spike.

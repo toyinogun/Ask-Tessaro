@@ -32,7 +32,7 @@ _Steps derived from spec 0003 acceptance criteria. `/check verify` runs these; `
 - [x] `iat`/`exp` come from the `now` argument truncated to whole seconds: mint at `.999999` → `iat` is the whole second      → value sourcing
 - [x] Allowed kind and issuer come from the key set entry, not the token: change an entry's `tessaro_kind` → `TOKEN_VERIFY_KEYS` refuses to load      → value sourcing
 - [x] Verify time comes from `now`; `principal_from_headers` with no `now` uses the wall clock: a token minted now passes, one minted an hour ago fails      → value sourcing
-- [x] OPA `data.tools[name].scope` comes from `ToolContract.scope`: change the scope → `policy/data/tools.json` changes only through `just contracts`      → value sourcing
+- [x] OPA `data.tools[name].scope` comes from `ToolContract.scope`: change the scope → `policy/tools.json` changes only through `just contracts`      → value sourcing
 - [ ] `get_my_leave` balance numbers, working days, the Amsterdam "today" and `record_ids` are produced by the People tool server (feature 14), not this library      → value sourcing (feature 14)
 
 ## Acceptance-criteria coverage
