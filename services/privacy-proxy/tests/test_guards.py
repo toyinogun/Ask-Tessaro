@@ -231,3 +231,22 @@ async def test_one_model_call_log_line_with_counts_and_no_text(
     assert isinstance(call["duration_ms"], int)
     assert "Daan" not in out
     assert "TES-01005" not in out
+
+
+async def test_a_failed_request_logs_one_failure_line_with_no_text(
+    make_proxy: ProxyFactory, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """covers: AC-12 (class name only, never the exception message)"""
+    proxy = make_proxy(analyzer=FakeAnalyzer(down=True))
+    await proxy.chat([user("Is Daan de Wit in?")])
+    out = capsys.readouterr().out
+    lines = [json.loads(line) for line in out.splitlines()]
+    failures = [e for e in lines if e["event"] == "model_call_failed"]
+    assert len(failures) == 1
+    failure = failures[0]
+    assert failure["code"] == "analyzer_unavailable"
+    assert failure["error"] == "AnalyzerUnavailable"
+    assert failure["upstream_status"] is None
+    assert isinstance(failure["duration_ms"], int)
+    assert not any(e["event"] == "model_call" for e in lines)
+    assert "Daan" not in out
