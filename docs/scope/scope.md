@@ -140,8 +140,9 @@ spec [0006](../specs/0006-privacy-proxy/index.md) · code in `services/privacy-p
   - [x] Detectors and full scope: analyzer with chunking, own patterns, overlap merging, every message part, tool call argument restore (AC-2, AC-3, AC-7, AC-15, AC-17)
   - [x] Guards: fail closed, request validation, upstream errors, readiness, concurrency and expiry, the `model_call` log (AC-8, AC-9, AC-10, AC-11, AC-12, AC-14)
   - [x] Proof: leak scan from the dataset, `presidio` marker, `just leak-scan` and its CI job (AC-13)
+  - [x] Verify fixes: text keyed merged spans and possessive trim, strict `PROXY_FAIL_CLOSED`, one Redis retry, the `model_call_failed` line (AC-3, AC-5, AC-8, AC-12, AC-15)
 - [ ] Verify it: `/check verify privacy proxy`
-- [ ] Test it: `/test privacy proxy`
+- [x] Test it: `/test privacy proxy`
 - [ ] Review it (fresh model): `/check review privacy proxy`
 - [ ] Document it: `/document privacy proxy`
 
