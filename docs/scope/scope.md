@@ -22,7 +22,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 3 | Fictional company dataset | Foundation (no cluster) | done |
 | 4 | Identity token & tool contracts | Foundation (no cluster) | done |
 | 5 | Record access model | Foundation (no cluster) | done |
-| 6 | Tool policy | Foundation (no cluster) | in-progress |
+| 6 | Tool policy | Foundation (no cluster) | done |
 | 7 | Privacy proxy | Foundation (no cluster) | planned |
 | 8 | Cluster investigation & baseline | Foundation (cluster) | planned |
 | 9 | Identity & chat systems | Foundation (cluster) | planned |
@@ -115,7 +115,7 @@ spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `li
 - [x] Review it (fresh model): `/check review record access model`
 - [x] Document it: `/document record access model`
 
-### 6. Tool policy · in-progress · GA
+### 6. Tool policy · done · GA
 The OPA policy and data that decide which roles may call which tools, with write scopes usable only by workflow worker tokens. No cluster needed.
 **Done when:** policy tests cover every role and scope in PRD 8.2, and every human token is denied every write scope.
 spec [0005](../specs/0005-tool-policy/index.md) · code in `policy/`, `libs/tessaro-auth/`, `libs/tessaro-contracts/`

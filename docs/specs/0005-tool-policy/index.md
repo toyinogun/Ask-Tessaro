@@ -1,7 +1,7 @@
 # 0005. Tool policy in OPA, with generated role scopes and a structured decision
 
 **Date**: 2026-10-09
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
