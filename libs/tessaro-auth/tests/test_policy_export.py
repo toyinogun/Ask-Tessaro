@@ -88,3 +88,54 @@ def test_main_fails_on_a_write_error(tmp_path: Path, capsys: pytest.CaptureFixtu
     (tmp_path / "policy").write_text("not a folder", encoding="utf-8")
     assert main(["--root", str(tmp_path)]) == 1
     assert "policy" in capsys.readouterr().err
+
+
+# AC-10: a new role or scope cannot slip past the table, the classification or the Rego grid
+
+READ_SCOPES = frozenset(
+    {
+        Scope.IT_READ,
+        Scope.HR_READ,
+        Scope.FINANCE_READ,
+        Scope.WORKPLACE_READ,
+        Scope.KB_READ,
+        Scope.QUEUE_HANDOFF,
+        Scope.WORKFLOW_READ,
+        Scope.TEAM_READ,
+        Scope.IT_READ_ANY,
+        Scope.WORKFLOW_READ_ANY,
+        Scope.HR_READ_ANY,
+    }
+)
+WRITE_SCOPES = frozenset({Scope.IDENTITY_WRITE, Scope.IT_WRITE, Scope.WORKPLACE_WRITE})
+GRID_TEST = ROOT / "policy/gateway_test.rego"
+
+
+def test_every_role_has_an_entry() -> None:
+    assert set(ROLE_SCOPES) == set(Role)
+
+
+def test_every_scope_is_granted_to_some_role() -> None:
+    granted = frozenset().union(*ROLE_SCOPES.values())
+    assert granted == set(Scope)
+
+
+def test_write_scopes_only_under_workflow_worker() -> None:
+    for role, scopes in ROLE_SCOPES.items():
+        writes = {scope for scope in scopes if scope.is_write}
+        assert not writes or role is Role.WORKFLOW_WORKER, f"{role} holds {writes}"
+
+
+def test_every_scope_is_classified_on_purpose() -> None:
+    assert READ_SCOPES.isdisjoint(WRITE_SCOPES)
+    assert set(Scope) == READ_SCOPES | WRITE_SCOPES
+    assert all(scope.is_write for scope in WRITE_SCOPES)
+    assert not any(scope.is_write for scope in READ_SCOPES)
+
+
+@pytest.mark.parametrize("scope", list(Scope))
+def test_every_scope_is_in_the_rego_grid_fixture(scope: Scope) -> None:
+    text = GRID_TEST.read_text(encoding="utf-8")
+    assert f'"{scope.value}"' in text, f"add {scope.value} to all_scopes in {GRID_TEST.name}"
+    tool = scope.value.replace(":", "_")
+    assert f'"{tool}"' in text, f"add {tool} to grid_columns in {GRID_TEST.name}"

@@ -45,3 +45,9 @@ repos:
         language: system
         types_or: [python, pyi]
         pass_filenames: false
+
+      - id: opa-fmt
+        name: opa fmt (Rego)
+        entry: opa fmt --fail -l
+        language: system
+        files: \.rego$
