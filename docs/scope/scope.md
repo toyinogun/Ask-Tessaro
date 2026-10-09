@@ -126,7 +126,7 @@ spec [0005](../specs/0005-tool-policy/index.md) · code in `policy/`, `libs/tess
   - [x] Listing: `allowed_tools` on the shared helper (AC-8)
   - [x] Guards: full role by scope grid, fmt, strict check and 100% coverage, enum and drift pytests (AC-9, AC-10)
 - [x] Verify it: `/check verify tool policy`
-- [ ] Test it: `/test tool policy`
+- [x] Test it: `/test tool policy`
 - [ ] Review it (fresh model): `/check review tool policy`
 - [ ] Document it: `/document tool policy`
 
