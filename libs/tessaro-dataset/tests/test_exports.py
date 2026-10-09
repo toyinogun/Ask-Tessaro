@@ -2,12 +2,14 @@
 
 import json
 from decimal import Decimal
+from typing import Any
 
 import yaml
 
 from tessaro_dataset import (
     EXPORTERS,
     Dataset,
+    DateContext,
     export_all,
     export_authentik,
     export_bookstack,
@@ -23,12 +25,13 @@ from tessaro_dataset import (
     load_dataset,
     render_exports,
 )
+from tessaro_dataset.assemble import RawSources, build_dataset
 from tessaro_dataset.derive import iban_is_valid
 from tessaro_dataset.exports.openfga import STAND_IN_CONDITION
 from tessaro_dataset.models import LeaveApplication, sensitive_fields
 from tessaro_dataset.registry import ALLOWED_RELATIONS, CONDITIONED_RELATIONS, FGA_ORG
 
-from .conftest import PATHS, WEDNESDAY_10
+from .conftest import PATHS, WEDNESDAY_10, edited, find
 
 LISA = "TES-01042"
 
@@ -128,6 +131,18 @@ def test_it_approvers_hang_off_the_org(dataset: Dataset) -> None:
     assert approvers == expected
     assert "user:TES-01012" in approvers
     assert {t.object for t in tuples if t.relation == "it_approver"} == {f"org:{FGA_ORG}"}
+
+
+def test_it_approver_tuple_follows_the_dataset_flag(sources: RawSources) -> None:
+    """covers: spec 0004 value sourcing (the org tuple comes from `it_approver`, not a constant)"""
+
+    def move_flag(document: dict[str, Any]) -> None:
+        find(document, "employees", "TES-01012").pop("it_approver")
+        find(document, "employees", "TES-01013")["it_approver"] = True
+
+    moved = build_dataset(edited(sources, "employees.yaml", move_flag), DateContext(WEDNESDAY_10))
+    approvers = [t for t in export_openfga(moved).tuples if t.relation == "it_approver"]
+    assert [(t.user, t.object) for t in approvers] == [("user:TES-01013", f"org:{FGA_ORG}")]
 
 
 def test_tuple_file_is_fga_cli_shape(dataset: Dataset) -> None:
