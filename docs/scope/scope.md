@@ -143,7 +143,7 @@ spec [0006](../specs/0006-privacy-proxy/index.md) · code in `services/privacy-p
   - [x] Verify fixes: text keyed merged spans and possessive trim, strict `PROXY_FAIL_CLOSED`, one Redis retry, the `model_call_failed` line (AC-3, AC-5, AC-8, AC-12, AC-15)
 - [ ] Verify it: `/check verify privacy proxy`
 - [x] Test it: `/test privacy proxy`
-- [ ] Review it (fresh model): `/check review privacy proxy`
+- [x] Review it (fresh model): `/check review privacy proxy`
 - [ ] Document it: `/document privacy proxy`
 
 ## Foundation (cluster)

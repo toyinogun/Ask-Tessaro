@@ -1,9 +1,11 @@
 """The encrypted Redis mapping (spec 0006 AC-5, AC-6, AC-14)."""
 
 import asyncio
+from collections.abc import Callable
 from typing import cast
 
 import pytest
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fakeredis import FakeAsyncRedis
 from redis.exceptions import ConnectionError as RedisConnectionError
 
@@ -26,18 +28,61 @@ def test_keys_round_trip_and_bad_keys_are_refused() -> None:
         decode_key("not base64 !!")
 
 
+@pytest.mark.parametrize(
+    "damage",
+    [lambda k: k[:10] + "!" + k[10:], lambda k: k + "=", lambda k: k.replace(k[5], "+", 1)],
+)
+def test_a_key_with_stray_characters_is_refused(damage: Callable[[str], str]) -> None:
+    """A lenient decoder would drop the stray character and accept a damaged key."""
+    key = encode_key(bytes(range(KEY_BYTES)))
+    with pytest.raises(ValueError, match="base64url"):
+        decode_key(damage(key))
+
+
 def test_a_value_only_decrypts_in_its_own_conversation_and_type() -> None:
     """covers: AC-5, AC-6 (associated data binds conversation and type)"""
     cipher = MappingCipher(mapping_key=b"m" * KEY_BYTES, lookup_key=b"l" * KEY_BYTES)
-    sealed = cipher.encrypt("c1", "PERSON", "Daan de Wit")
+    sealed = cipher.encrypt("c1", "PERSON", "Daan de Wit", "f")
     assert "Daan" not in sealed
-    assert cipher.decrypt("c1", "PERSON", sealed) == "Daan de Wit"
+    assert cipher.decrypt("c1", "PERSON", sealed, "f") == "Daan de Wit"
     with pytest.raises(MappingStoreUnavailable):
-        cipher.decrypt("c2", "PERSON", sealed)
+        cipher.decrypt("c2", "PERSON", sealed, "f")
     with pytest.raises(MappingStoreUnavailable):
-        cipher.decrypt("c1", "EMAIL_ADDRESS", sealed)
+        cipher.decrypt("c1", "EMAIL_ADDRESS", sealed, "f")
     with pytest.raises(MappingStoreUnavailable):
-        cipher.decrypt("c1", "PERSON", "@@not-base64@@")
+        cipher.decrypt("c1", "PERSON", "@@not-base64@@", "f")
+
+
+def test_a_value_only_decrypts_for_its_own_lookup_field() -> None:
+    """covers: AC-6 (two entries of one type cannot stand in for each other)"""
+    cipher = MappingCipher(mapping_key=b"m" * KEY_BYTES, lookup_key=b"l" * KEY_BYTES)
+    sealed = cipher.encrypt("c1", "PERSON", "Daan de Wit", "field-a")
+    assert cipher.decrypt("c1", "PERSON", sealed, "field-a") == "Daan de Wit"
+    with pytest.raises(MappingStoreUnavailable):
+        cipher.decrypt("c1", "PERSON", sealed, "field-b")
+
+
+def test_a_value_that_is_not_utf8_is_a_mapping_error() -> None:
+    cipher = MappingCipher(mapping_key=b"m" * KEY_BYTES, lookup_key=b"l" * KEY_BYTES)
+    nonce = b"n" * 12
+    sealed = AESGCM(b"m" * KEY_BYTES).encrypt(nonce, b"\xff\xfe", b"c1|PERSON|f")
+    with pytest.raises(MappingStoreUnavailable):
+        cipher.decrypt("c1", "PERSON", encode_key(nonce + sealed), "f")
+
+
+async def test_swapped_stored_values_never_restore_the_wrong_person(
+    redis: FakeAsyncRedis, store: RedisMappingStore
+) -> None:
+    """covers: AC-6 (someone with Redis write access swaps two entries of one type)"""
+    await store.placeholder_for("c1", PERSON, "PERSON|text:anna", "Anna")
+    await store.placeholder_for("c1", PERSON, "PERSON|text:bram", "Bram")
+    _, rev, _ = conversation_keys("c1")
+    one, two = await redis.hmget(rev, ["<PERSON_1>", "<PERSON_2>"])
+    assert one is not None
+    assert two is not None
+    await redis.hset(rev, mapping={"<PERSON_1>": two, "<PERSON_2>": one})
+    with pytest.raises(MappingStoreUnavailable):
+        await store.originals("c1", ["<PERSON_1>"])
 
 
 def test_lookup_fields_depend_on_the_lookup_key() -> None:
@@ -137,3 +182,31 @@ async def test_every_redis_failure_is_mapping_store_unavailable() -> None:
         await store.placeholder_for("c1", PERSON, "k", "v")
     with pytest.raises(MappingStoreUnavailable):
         await store.originals("c1", ["<PERSON_1>"])
+
+
+async def test_a_stored_value_without_its_lookup_field_fails_closed(
+    redis: FakeAsyncRedis, store: RedisMappingStore
+) -> None:
+    """covers: AC-6"""
+    await store.placeholder_for("c1", PERSON, "PERSON|text:anna", "Anna")
+    _, rev, _ = conversation_keys("c1")
+    await redis.hset(rev, "<PERSON_1>", "no-separator")
+    with pytest.raises(MappingStoreUnavailable):
+        await store.originals("c1", ["<PERSON_1>"])
+
+
+class _FwdReadFails(FakeAsyncRedis):
+    async def hmget(self, name: str, keys: list[str]) -> object:  # type: ignore[override]
+        if name.endswith(":fwd"):
+            raise RedisConnectionError("down")
+        return await super().hmget(name, keys)
+
+
+async def test_a_failed_ownership_read_is_mapping_store_unavailable() -> None:
+    """covers: AC-8 (the second read during restore fails closed too)"""
+    redis = _FwdReadFails()
+    store = make_store(redis)
+    await store.placeholder_for("c1", PERSON, "PERSON|text:anna", "Anna")
+    with pytest.raises(MappingStoreUnavailable):
+        await store.originals("c1", ["<PERSON_1>"])
+    await redis.aclose()

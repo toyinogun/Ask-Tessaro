@@ -1,6 +1,8 @@
 """Fail closed, request errors, upstream errors and the log line (spec 0006 AC-8 to AC-12)."""
 
 import json
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -11,6 +13,7 @@ from tessaro_privacy_proxy.analyzer.fake import FakeAnalyzer
 from tessaro_privacy_proxy.chat.errors import validation_error_handler
 from tessaro_privacy_proxy.mapping.redis_store import conversation_keys
 from tessaro_privacy_proxy.masking.mask import Masker
+from tessaro_privacy_proxy.masking.ports import AnalyzerResult
 
 from .conftest import CLIENT_KEY, CONVERSATION, TOOLS_MODEL, Proxy, ProxyFactory, answer, user
 
@@ -250,3 +253,41 @@ async def test_a_failed_request_logs_one_failure_line_with_no_text(
     assert isinstance(failure["duration_ms"], int)
     assert not any(e["event"] == "model_call" for e in lines)
     assert "Daan" not in out
+
+
+@dataclass(frozen=True)
+class _OffsetAnalyzer:
+    """Answers with fixed hits, whatever the text."""
+
+    hits: tuple[AnalyzerResult, ...]
+
+    async def analyze(self, text: str) -> Sequence[AnalyzerResult]:
+        return self.hits
+
+
+@pytest.mark.parametrize(
+    "hit",
+    [
+        AnalyzerResult("PERSON", 0, 999, 0.9),
+        AnalyzerResult("PERSON", -1, 3, 0.9),
+        AnalyzerResult("EMAIL_ADDRESS", 4, 4, 0.9),
+    ],
+)
+async def test_a_requested_hit_with_impossible_offsets_fails_closed(
+    make_proxy: ProxyFactory, hit: AnalyzerResult
+) -> None:
+    """covers: AC-8 (offsets that cannot be true mean the reply cannot be trusted)"""
+    proxy = make_proxy(analyzer=_OffsetAnalyzer((hit,)))
+    assert _error(await proxy.chat([user("hello there")])) == (503, "analyzer_unavailable")
+    assert proxy.upstream.requests == []
+
+
+async def test_unrequested_or_low_score_hits_are_ignored_whatever_their_offsets(
+    make_proxy: ProxyFactory,
+) -> None:
+    """covers: AC-3"""
+    hits = (AnalyzerResult("LOCATION", 0, 999, 0.9), AnalyzerResult("PERSON", 0, 999, 0.1))
+    proxy = make_proxy(analyzer=_OffsetAnalyzer(hits))
+    response = await proxy.chat([user("hello there")])
+    assert response.status_code == 200
+    assert proxy.upstream.bodies[0]["messages"][0]["content"] == "hello there"

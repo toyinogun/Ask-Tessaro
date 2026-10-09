@@ -15,9 +15,11 @@ _STREET_SUFFIXES = (
 _PARTICLES = "van|de|der|den|het|ter|ten|op|aan|in"
 _LETTERS = r"[a-zà-ÿ'\u2019]*"  # lowercase letters and both apostrophes
 _CAPITALIZED = rf"[A-Z]{_LETTERS}"
+# IDs, phones and IBANs: `_` and a following letter separate them too (`employee_TES-00012`).
+_NOT_AFTER_ALNUM = r"(?<![A-Za-z0-9])"
 
 PATTERNS: Sequence[tuple[EntityType, re.Pattern[str]]] = (
-    (EntityType.EMPLOYEE_ID, re.compile(r"(?<!\w)TES-\d{5}(?!\w)")),
+    (EntityType.EMPLOYEE_ID, re.compile(rf"{_NOT_AFTER_ALNUM}TES-\d{{5}}(?!\d)")),
     (
         EntityType.HOME_ADDRESS,
         re.compile(
@@ -29,11 +31,11 @@ PATTERNS: Sequence[tuple[EntityType, re.Pattern[str]]] = (
     (
         # Mobile (06) and landline (two or three digit area code): nine digits after the prefix.
         EntityType.PHONE_NUMBER,
-        re.compile(r"(?<![\w+])(?:\+31|0031|0)[\s-]?(?:\(0\)[\s-]?)?[1-9](?:[\s-]?\d){8}(?!\d)"),
+        re.compile(r"(?<![\d+])(?:\+31|0031|0)[\s-]?(?:\(0\)[\s-]?)?[1-9](?:[\s-]?\d){8}(?!\d)"),
     ),
     (
         EntityType.IBAN_CODE,
-        re.compile(r"(?<!\w)NL\d{2} ?[A-Z]{4} ?\d{4} ?\d{4} ?\d{2}(?!\w)"),
+        re.compile(rf"{_NOT_AFTER_ALNUM}NL\d{{2}} ?[A-Z]{{4}} ?\d{{4}} ?\d{{4}} ?\d{{2}}(?!\d)"),
     ),
 )
 

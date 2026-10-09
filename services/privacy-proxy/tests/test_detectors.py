@@ -1,5 +1,7 @@
 """Directory, patterns, overlap resolution and chunking (spec 0006 AC-3, AC-4, AC-15, AC-17)."""
 
+from itertools import pairwise
+
 import pytest
 
 from tessaro_privacy_proxy.masking.chunks import chunk
@@ -277,20 +279,79 @@ def test_short_text_is_one_chunk() -> None:
     assert chunk("hello") == [(0, "hello")]
 
 
+def _covers(text: str, pieces: list[tuple[int, str]], limit: int) -> None:
+    assert all(len(p) <= limit for _, p in pieces)
+    assert all(text[o : o + len(p)] == p for o, p in pieces)
+    assert pieces[0][0] == 0
+    assert pieces[-1][0] + len(pieces[-1][1]) == len(text)
+    for (first, piece), (second, _) in pairwise(pieces):
+        assert first < second <= first + len(piece)  # no gap between neighbours
+
+
 def test_long_text_is_split_on_lines_with_true_offsets() -> None:
     """covers: AC-17"""
     text = "\n".join(f"line {i} " + "x" * 50 for i in range(500))
     pieces = chunk(text, limit=1000)
-    assert all(len(p) <= 1000 for _, p in pieces)
-    assert "".join(p for _, p in pieces) == text
-    assert all(text[o : o + len(p)] == p for o, p in pieces)
+    _covers(text, pieces, 1000)
     assert all(p.endswith("\n") for _, p in pieces[:-1])
 
 
 def test_a_long_line_splits_on_spaces_and_a_huge_word_is_cut() -> None:
     """covers: AC-17"""
     text = "word " * 300 + "y" * 2500
-    pieces = chunk(text, limit=1000)
-    assert all(len(p) <= 1000 for _, p in pieces)
-    assert "".join(p for _, p in pieces) == text
-    assert all(text[o : o + len(p)] == p for o, p in pieces)
+    _covers(text, chunk(text, limit=1000), 1000)
+
+
+def test_a_name_across_a_chunk_boundary_is_whole_in_one_chunk() -> None:
+    """covers: AC-17 (chunks overlap, so a value cut by one boundary is whole in the next)"""
+    for shift in range(0, 40, 3):
+        text = "a " * (395 + shift) + "Jan Jansen NL91 ABNA 0417 1643 00 " + "b " * 800
+        pieces = chunk(text, limit=1000, overlap=100)
+        _covers(text, pieces, 1000)
+        assert any("Jan Jansen NL91 ABNA 0417 1643 00" in p for _, p in pieces)
+
+
+def test_the_overlap_must_leave_room_in_a_chunk() -> None:
+    with pytest.raises(ValueError, match="overlap"):
+        chunk("x" * 50, limit=10, overlap=5)
+
+
+def test_letters_ignore_case_treats_as_i_never_crash_the_lookup() -> None:
+    """covers: AC-4 (re.IGNORECASE folds i, dotless i and dotted capital I; casefold() not)"""
+    directory = Directory.from_entries([_entry("TES-00003", "Zoë", "Bakir")])
+    text = "BAK\u0131R, BAK\u0130R and bakir"
+    spans = directory.find(text)
+    assert len(spans) == 3
+    assert {s.key for s in spans} == {"PERSON|emp:TES-00003"}
+
+
+def test_directory_forms_are_stored_in_nfc() -> None:
+    """covers: AC-4 (a decomposed form in the export still matches composed text)"""
+    directory = Directory.from_entries([_entry("TES-00003", "Zoe\u0308", "Bakir")])
+    text = "Zo\u00eb Bakir"
+    assert _found(directory.find(text), text) == [(text, EntityType.PERSON)]
+
+
+@pytest.mark.parametrize(
+    ("text", "value", "entity_type"),
+    [
+        ("employee_TES-00012", "TES-00012", EntityType.EMPLOYEE_ID),
+        ("x TES-00012abc", "TES-00012", EntityType.EMPLOYEE_ID),
+        ("phone_0612345678", "0612345678", EntityType.PHONE_NUMBER),
+        ("iban_NL91ABNA0417164300", "NL91ABNA0417164300", EntityType.IBAN_CODE),
+    ],
+)
+def test_patterns_treat_underscore_and_trailing_letters_as_separators(
+    text: str, value: str, entity_type: EntityType
+) -> None:
+    """covers: AC-3 (snake case keys and file names do not hide a value)"""
+    assert (value, entity_type) in _found(find_patterns(text), text)
+
+
+def test_directory_treats_underscore_as_a_separator(directory: Directory) -> None:
+    """covers: AC-4"""
+    text = "id_TES-01005 user_daan"
+    assert _found(directory.find(text), text) == [
+        ("TES-01005", EntityType.EMPLOYEE_ID),
+        ("daan", EntityType.PERSON),
+    ]

@@ -1,6 +1,7 @@
 """The masking use case: find every personal value in a request and swap in placeholders."""
 
 import asyncio
+import unicodedata
 from collections import Counter
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -15,7 +16,7 @@ from tessaro_privacy_proxy.masking.entities import (
     Span,
     text_span,
 )
-from tessaro_privacy_proxy.masking.errors import UnsupportedContent
+from tessaro_privacy_proxy.masking.errors import AnalyzerUnavailable, UnsupportedContent
 from tessaro_privacy_proxy.masking.jsontext import argument_strings, rewrite_arguments
 from tessaro_privacy_proxy.masking.models import ChatMessage, ChatRequest, ToolCall
 from tessaro_privacy_proxy.masking.patterns import find_patterns
@@ -37,7 +38,7 @@ class MaskResult:
 
 
 def _check_supported(request: ChatRequest) -> None:
-    if any(field in request.passthrough() for field in _LEGACY_FIELDS):
+    if any(field in (request.model_extra or {}) for field in _LEGACY_FIELDS):
         raise UnsupportedContent("legacy functions fields are not supported")
     for message in request.messages:
         if isinstance(message.content, tuple) and any(
@@ -106,17 +107,20 @@ class Masker:
         _check_supported(request)
         await self.store.touch(conversation_id)
         texts = sorted({t for m in request.messages for t in _message_strings(m) if t})
+        # NFC first, so a decomposed name still meets its directory form; it is also what
+        # goes upstream, so every offset stays true for the text that is sent.
+        nfc = {t: unicodedata.normalize("NFC", t) for t in texts}
         limiter = asyncio.Semaphore(ANALYZER_CONCURRENCY)
-        found = await asyncio.gather(*(self._detect(t, limiter) for t in texts))
+        found = await asyncio.gather(*(self._detect(nfc[t], limiter) for t in texts))
         spans_by_text = dict(zip(texts, found, strict=True))
         placeholders = await self._allocate(conversation_id, spans_by_text)
-        rendered = {t: _render(t, spans, placeholders) for t, spans in spans_by_text.items()}
+        rendered = {t: _render(nfc[t], spans, placeholders) for t, spans in spans_by_text.items()}
 
         def convert(text: str) -> str:
             return rendered.get(text, text)
 
         body: dict[str, Any] = {
-            **{k: v for k, v in request.passthrough().items() if k not in _LEGACY_FIELDS},
+            **request.passthrough(),
             "model": request.model,
             "messages": [_rewrite_message(m, convert) for m in request.messages],
         }
@@ -135,14 +139,19 @@ class Masker:
     ) -> list[Span]:
         async with limiter:
             results = await self.analyzer.analyze(piece)
+        wanted = [
+            r
+            for r in results
+            if r.entity_type in _ANALYZER_TYPES and r.score >= self.score_threshold
+        ]
+        if any(not 0 <= r.start < r.end <= len(piece) for r in wanted):
+            # Offsets that cannot be true mean the reply cannot be trusted: fail closed.
+            raise AnalyzerUnavailable("analyzer offsets fall outside the text")
         return [
             text_span(
                 offset + r.start, offset + r.end, EntityType(r.entity_type), Source.ANALYZER, text
             )
-            for r in results
-            if r.entity_type in _ANALYZER_TYPES
-            and r.score >= self.score_threshold
-            and 0 <= r.start < r.end <= len(piece)
+            for r in wanted
         ]
 
     async def _allocate(
