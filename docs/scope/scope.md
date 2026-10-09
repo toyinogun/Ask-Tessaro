@@ -144,7 +144,7 @@ spec [0006](../specs/0006-privacy-proxy/index.md) · code in `services/privacy-p
 - [ ] Verify it: `/check verify privacy proxy`
 - [x] Test it: `/test privacy proxy`
 - [x] Review it (fresh model): `/check review privacy proxy`
-- [ ] Document it: `/document privacy proxy`
+- [x] Document it: `/document privacy proxy`
 
 ## Foundation (cluster)
 
