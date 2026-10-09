@@ -23,10 +23,11 @@ just dev <svc>   # one service with hot reload, e.g. `just dev tool-gateway`
 just fmt         # ruff fix + format
 just check       # lint, typecheck, test (80% per package), policy, charts: what CI runs
 just new-service <name> <namespace>   # stamp a service from templates/service
-just keys        # write dev token keys into .env (also run by `just init`)
+just keys        # write dev token keys and privacy proxy keys into .env, only the missing ones (also run by `just init`)
 just contracts   # regenerate tool contract snapshots and the OPA data in policy/ (tools.json, role_scopes.json)
 just contracts-check origin/main   # check contracts against the snapshots released on a base ref (CI, on PRs)
-just dataset --anchor <iso>   # export the fictional company dataset to dataset/build/ (gitignored)
+just dataset --anchor <iso>   # export the fictional company dataset to dataset/build/ (gitignored); the privacy proxy reads dataset/build/directory.json
+just leak-scan   # privacy proxy leak scan against the real Presidio analyzer (after `just up`)
 just policy      # opa fmt, opa check --strict and opa test at 100% coverage on policy/, then just authz-test
 just authz-test   # validate authz/model.fga, export seed tuples to authz/.build, run every authz/*.fga.yaml (part of `just policy`)
 just authz-load   # load the model and dataset tuples into local OpenFGA, then set OPENFGA_STORE_ID and OPENFGA_MODEL_ID in .env
@@ -70,6 +71,7 @@ Stored in `docs/specs/`, one folder per decision: `docs/specs/NNNN-title/index.m
 - [langchain-dependencies](.claude/skills/langchain-dependencies/): `langchain-ai/langchain-skills`, LangChain package choices
 - [temporal-python-testing](.claude/skills/temporal-python-testing/): `wshobson/agents`, testing JML workflows
 - [workflow-orchestration-patterns](.claude/skills/workflow-orchestration-patterns/): `wshobson/agents`, durable workflow design
+- [redis-connections](.claude/skills/redis-connections/): `redis/agent-skills`, Redis client setup (pooling, timeouts, retries) for redis-py
 - [helm-chart-scaffolding](.claude/skills/helm-chart-scaffolding/): `wshobson/agents`, the shared service chart
 - [gitops-workflow](.claude/skills/gitops-workflow/): `wshobson/agents`, Argo CD app of apps in `deploy/`
 
