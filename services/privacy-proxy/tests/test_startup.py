@@ -4,14 +4,22 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from redis.asyncio import Redis
+from redis.asyncio.retry import Retry
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import ResponseError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 import tessaro_privacy_proxy.main as main
 from tessaro_privacy_proxy.devkeys import MANAGED, ensure_proxy_keys
 from tessaro_privacy_proxy.devkeys import main as devkeys_main
 from tessaro_privacy_proxy.mapping.cipher import decode_key
 from tessaro_privacy_proxy.masking.errors import DirectoryError
+from tessaro_privacy_proxy.settings import Settings
 
 from .conftest import CLIENT_KEY, LOOKUP_KEY, MAPPING_KEY, make_settings
+
+REDIS_URL = "redis://localhost:6379/0"  # never connected: the tests drive the retry policy only
 
 
 def test_defaults_and_derived_values(directory_file: Path) -> None:
@@ -39,6 +47,89 @@ def test_bad_settings_stop_startup(directory_file: Path, override: dict[str, obj
         make_settings(directory_file, **override)
 
 
+@pytest.mark.parametrize("value", ["yes", "1", "on", " true", "", "false", 1])
+def test_fail_closed_accepts_only_the_literal_true(directory_file: Path, value: object) -> None:
+    """covers: AC-8"""
+    with pytest.raises(ValidationError):
+        make_settings(directory_file, proxy_fail_closed=value)
+
+
+@pytest.mark.parametrize("value", ["true", "TRUE", True])
+def test_fail_closed_true_passes(directory_file: Path, value: object) -> None:
+    """covers: AC-8"""
+    assert make_settings(directory_file, proxy_fail_closed=value).proxy_fail_closed is True
+
+
+def test_the_mapping_client_retries_once_and_readiness_never_retries() -> None:
+    """covers: AC-8 (one retry after a stale connection), AC-11 (readiness reports the truth)"""
+    mapping = main.mapping_redis("redis://localhost:6379/0")
+    kwargs = mapping.connection_pool.connection_kwargs
+    assert kwargs["health_check_interval"] == 30
+    retry = kwargs["retry"]
+    assert retry._retries == 1
+    assert {RedisConnectionError, RedisTimeoutError} <= set(retry._supported_errors)
+    probe = main.readiness_redis("redis://localhost:6379/0")
+    assert probe.connection_pool.connection_kwargs.get("retry") in (None,) or (
+        probe.connection_pool.connection_kwargs["retry"]._retries == 0
+    )
+
+
+class _Flaky:
+    """An operation that raises the given errors in turn, then returns "ok"."""
+
+    def __init__(self, *errors: Exception) -> None:
+        self.errors = list(errors)
+        self.attempts = 0
+
+    async def __call__(self) -> str:
+        self.attempts += 1
+        if self.errors:
+            raise self.errors.pop(0)
+        return "ok"
+
+
+async def _ignore(_: Exception) -> None:
+    return None
+
+
+def _retry_of(client: Redis) -> Retry:
+    retry = client.connection_pool.connection_kwargs["retry"]
+    assert isinstance(retry, Retry)
+    return retry
+
+
+@pytest.mark.parametrize("error", [RedisConnectionError("gone"), RedisTimeoutError("slow")])
+async def test_the_mapping_client_recovers_after_one_dropped_call(error: Exception) -> None:
+    """covers: AC-8 (the first request after a Redis restart succeeds)"""
+    op = _Flaky(error)
+    result = await _retry_of(main.mapping_redis(REDIS_URL)).call_with_retry(op, _ignore)
+    assert (result, op.attempts) == ("ok", 2)
+
+
+async def test_the_mapping_client_gives_up_after_the_second_failure() -> None:
+    """covers: AC-8 (two failures in a row reach the 503 path)"""
+    op = _Flaky(RedisConnectionError("gone"), RedisConnectionError("still gone"))
+    with pytest.raises(RedisConnectionError, match="still gone"):
+        await _retry_of(main.mapping_redis(REDIS_URL)).call_with_retry(op, _ignore)
+    assert op.attempts == 2
+
+
+async def test_the_mapping_client_never_retries_other_redis_errors() -> None:
+    """covers: AC-8 (any other Redis error fails at once)"""
+    op = _Flaky(ResponseError("NOSCRIPT"))
+    with pytest.raises(ResponseError):
+        await _retry_of(main.mapping_redis(REDIS_URL)).call_with_retry(op, _ignore)
+    assert op.attempts == 1
+
+
+async def test_the_readiness_client_makes_a_single_attempt() -> None:
+    """covers: AC-11 (readiness reports a Redis outage at once)"""
+    op = _Flaky(RedisConnectionError("gone"))
+    with pytest.raises(RedisConnectionError):
+        await _retry_of(main.readiness_redis(REDIS_URL)).call_with_retry(op, _ignore)
+    assert op.attempts == 1
+
+
 def test_settings_come_from_env_vars(directory_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     env = {
         "PROXY_CLIENT_KEY": CLIENT_KEY,
@@ -56,6 +147,8 @@ def test_settings_come_from_env_vars(directory_file: Path, monkeypatch: pytest.M
         monkeypatch.setenv(name, value)
     app = main.app
     assert app.title == "privacy-proxy"
+    monkeypatch.setenv("PROXY_FAIL_CLOSED", "")
+    assert Settings().proxy_fail_closed is True  # an empty env value reads as unset
     monkeypatch.setenv("PROXY_FAIL_CLOSED", "false")
     with pytest.raises(ValidationError):
         _ = main.app

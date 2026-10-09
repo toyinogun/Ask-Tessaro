@@ -6,6 +6,10 @@ import httpx
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from redis.asyncio import Redis
+from redis.asyncio.retry import Retry
+from redis.backoff import ConstantBackoff
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from tessaro_core import ReadinessCheck, create_app, create_http_client
 from tessaro_privacy_proxy.analyzer.http import HttpAnalyzer
@@ -19,6 +23,27 @@ from tessaro_privacy_proxy.masking.mask import Masker
 from tessaro_privacy_proxy.masking.ports import Analyzer
 from tessaro_privacy_proxy.settings import Settings
 from tessaro_privacy_proxy.upstream.client import UpstreamClient
+
+REDIS_RETRY_BACKOFF_SECONDS = 0.05
+REDIS_HEALTH_CHECK_SECONDS = 30
+
+
+def mapping_redis(url: str) -> Redis:
+    """The mapping store's client: one retry on a dropped connection, then fail closed (AC-8).
+
+    Both Lua scripts are safe to repeat, so the retry cannot issue a second placeholder.
+    """
+    return Redis.from_url(
+        url,
+        retry=Retry(ConstantBackoff(REDIS_RETRY_BACKOFF_SECONDS), retries=1),
+        retry_on_error=[RedisConnectionError, RedisTimeoutError],
+        health_check_interval=REDIS_HEALTH_CHECK_SECONDS,
+    )
+
+
+def readiness_redis(url: str) -> Redis:
+    """The readiness probe's client: no retry, so `/readyz` reports the truth at once (AC-11)."""
+    return Redis.from_url(url, retry=Retry(ConstantBackoff(0), retries=0))
 
 
 @dataclass(frozen=True)
@@ -52,7 +77,8 @@ def _store(settings: Settings, redis: Redis) -> RedisMappingStore:
 def build_app(settings: Settings, deps: Dependencies | None = None) -> FastAPI:
     """Wire the proxy. Fails at startup on a bad setting or a missing directory."""
     given = deps or Dependencies()
-    redis = given.redis or Redis.from_url(settings.redis_url)
+    redis = given.redis or mapping_redis(settings.redis_url)
+    probe = given.redis or readiness_redis(settings.redis_url)
     http_analyzer = HttpAnalyzer(
         client=create_http_client(
             settings.presidio_analyzer_url,
@@ -79,7 +105,7 @@ def build_app(settings: Settings, deps: Dependencies | None = None) -> FastAPI:
     )
 
     async def redis_ready() -> bool:
-        return bool(await redis.ping())
+        return bool(await probe.ping())
 
     app = create_app(
         settings,

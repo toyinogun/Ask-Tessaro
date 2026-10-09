@@ -41,12 +41,13 @@ class Settings(ServiceSettings):
         decode_key(value.get_secret_value())
         return value
 
-    @field_validator("proxy_fail_closed")
+    @field_validator("proxy_fail_closed", mode="before")
     @classmethod
-    def _always_closed(cls, value: bool) -> bool:
-        if not value:
-            raise ValueError("PROXY_FAIL_CLOSED must be true: the proxy never fails open")
-        return value
+    def _always_closed(cls, value: object) -> bool:
+        # Only the literal `true` (any case): pydantic's bool would also take yes, 1 and on.
+        if value is True or (isinstance(value, str) and value.lower() == "true"):
+            return True
+        raise ValueError("PROXY_FAIL_CLOSED must be true: the proxy never fails open")
 
     @property
     def allowed_models(self) -> frozenset[str]:

@@ -152,7 +152,99 @@ def test_a_partial_overlap_merges_into_the_winner(directory: Directory) -> None:
     spans = resolve([*directory.find(text), analyzer], text)
     assert len(spans) == 1
     assert (spans[0].start, spans[0].end) == (4, 26)
-    assert spans[0].key == f"PERSON|emp:{DAAN}"
+    assert spans[0].key == "PERSON|text:daan de wit and co tod"
+    assert spans[0].original == "Daan de Wit and Co tod"
+
+
+def test_a_name_outside_the_directory_never_takes_an_employee_key(
+    directory: Directory,
+) -> None:
+    """covers: AC-5, AC-15 (Jan Bakker is not the employee whose surname is Bakker)"""
+    text = "I spoke with Jan Bakker yesterday"
+    analyzer = _span(13, 23, Source.ANALYZER, text, EntityType.PERSON)
+    spans = resolve([*directory.find(text), analyzer], text)
+    assert [(s.start, s.end, s.key, s.original) for s in spans] == [
+        (13, 23, "PERSON|text:jan bakker", "Jan Bakker")
+    ]
+
+
+def test_a_span_bridging_two_employees_is_keyed_by_its_text() -> None:
+    """covers: AC-15"""
+    found = Directory.from_entries(
+        [_entry("TES-00001", "Jan", "Smit"), _entry("TES-00002", "Pieter", "Bakker")]
+    )
+    text = "Jan Bakker"
+    analyzer = _span(0, 10, Source.ANALYZER, text, EntityType.PERSON)
+    spans = resolve([*found.find(text), analyzer], text)
+    assert [(s.start, s.end, s.key) for s in spans] == [(0, 10, "PERSON|text:jan bakker")]
+
+
+def test_an_exact_directory_match_keeps_the_employee_key(directory: Directory) -> None:
+    """covers: AC-15 (a merge that adds nothing keeps the winner)"""
+    text = "Is Daan de Wit in?"
+    analyzer = _span(3, 14, Source.ANALYZER, text, EntityType.PERSON)
+    spans = resolve([*directory.find(text), analyzer], text)
+    assert [(s.start, s.end, s.key) for s in spans] == [(3, 14, f"PERSON|emp:{DAAN}")]
+
+
+@pytest.mark.parametrize("possessive", ["'s", "\u2019s", "'S"])
+def test_an_analyzer_possessive_is_trimmed(directory: Directory, possessive: str) -> None:
+    """covers: AC-3, AC-15 (the directory match wins, the possessive stays readable)"""
+    text = f"Daan de Wit{possessive} claim"
+    analyzer = _span(0, 13, Source.ANALYZER, text, EntityType.PERSON)
+    spans = resolve([*directory.find(text), analyzer], text)
+    assert [(s.start, s.end, s.key) for s in spans] == [(0, 11, f"PERSON|emp:{DAAN}")]
+
+
+def test_a_possessive_alone_is_dropped_and_other_sources_are_never_trimmed() -> None:
+    """covers: AC-15"""
+    text = "it's Anna's"
+    spans = resolve(
+        [
+            _span(2, 4, Source.ANALYZER, text, EntityType.PERSON),
+            _span(5, 11, Source.PATTERN, text, EntityType.PERSON),
+        ],
+        text,
+    )
+    assert [(s.start, s.end) for s in spans] == [(5, 11)]
+
+
+@pytest.mark.parametrize(
+    ("text", "end"),
+    [
+        ("Jones called", 5),  # ends in s, no apostrophe
+        ("O'Neil called", 6),  # an apostrophe inside the name
+        ("Anna' called", 5),  # an apostrophe with no s
+        ("Anna`s called", 6),  # a backtick is not an apostrophe
+    ],
+)
+def test_an_analyzer_span_without_a_possessive_is_kept_whole(text: str, end: int) -> None:
+    """covers: AC-15 (only a trailing apostrophe s is trimmed)"""
+    spans = resolve([_span(0, end, Source.ANALYZER, text, EntityType.PERSON)], text)
+    assert [(s.start, s.end) for s in spans] == [(0, end)]
+
+
+def test_a_trimmed_name_outside_the_directory_is_keyed_without_the_possessive() -> None:
+    """covers: AC-3, AC-5, AC-15 (the same placeholder as the plain name)"""
+    text = "Wilhelmina Oosterhuis's claim"
+    spans = resolve([_span(0, 23, Source.ANALYZER, text, EntityType.PERSON)], text)
+    assert [(s.start, s.end, s.key, s.original) for s in spans] == [
+        (0, 21, "PERSON|text:wilhelmina oosterhuis", "Wilhelmina Oosterhuis")
+    ]
+
+
+def test_a_possessive_is_trimmed_from_any_analyzer_type() -> None:
+    """covers: AC-15 (the trim is not limited to PERSON)"""
+    text = "NL91ABNA0417164300's balance"
+    spans = resolve([_span(0, 20, Source.ANALYZER, text, EntityType.IBAN_CODE)], text)
+    assert [(s.start, s.end, s.entity_type) for s in spans] == [(0, 18, EntityType.IBAN_CODE)]
+
+
+def test_a_single_character_analyzer_span_is_kept() -> None:
+    """covers: AC-15 (too short to hold a possessive)"""
+    text = "s"
+    spans = resolve([_span(0, 1, Source.ANALYZER, text, EntityType.PERSON)], text)
+    assert [(s.start, s.end) for s in spans] == [(0, 1)]
 
 
 def test_a_merged_text_span_is_keyed_by_its_wider_text() -> None:
