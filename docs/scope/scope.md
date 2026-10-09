@@ -128,7 +128,7 @@ spec [0005](../specs/0005-tool-policy/index.md) · code in `policy/`, `libs/tess
 - [x] Verify it: `/check verify tool policy`
 - [x] Test it: `/test tool policy`
 - [x] Review it (fresh model): `/check review tool policy`
-- [ ] Document it: `/document tool policy`
+- [x] Document it: `/document tool policy`
 
 ### 7. Privacy proxy · needs a decision · GA
 OpenAI compatible proxy in front of the model: masks names, emails, phones, IBANs, addresses and employee IDs (plus a directory recognizer), keeps consistent encrypted placeholders per conversation, restores them in answers and tool arguments, and fails closed. The core runs locally. No cluster needed.
