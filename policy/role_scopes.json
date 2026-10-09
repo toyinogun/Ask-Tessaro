@@ -1,0 +1,37 @@
+{
+  "role_scopes": {
+    "employee": [
+      "finance:read",
+      "hr:read",
+      "it:read",
+      "kb:read",
+      "queue:handoff",
+      "workflow:read",
+      "workplace:read"
+    ],
+    "it_service_desk": [
+      "it:read_any",
+      "workflow:read_any"
+    ],
+    "manager": [
+      "finance:read",
+      "hr:read",
+      "it:read",
+      "kb:read",
+      "queue:handoff",
+      "team:read",
+      "workflow:read",
+      "workplace:read"
+    ],
+    "people_advisor": [
+      "hr:read_any",
+      "workflow:read_any"
+    ],
+    "workflow_worker": [
+      "hr:read_any",
+      "identity:write",
+      "it:write",
+      "workplace:write"
+    ]
+  }
+}

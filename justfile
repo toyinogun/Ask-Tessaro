@@ -66,9 +66,10 @@ dev service port="":
 dataset *args:
     uv run tessaro-dataset export --out dataset/build {{ args }}
 
-# Write contract snapshots (libs/tessaro-contracts/schemas/) and OPA tool data (policy/data/tools.json)
+# Write contract snapshots (libs/tessaro-contracts/schemas/) and OPA data (policy/tools.json, policy/role_scopes.json)
 contracts:
     uv run python -m tessaro_contracts.export
+    uv run python -m tessaro_auth.policy_export
 
 # Check the contracts against the snapshots released on a base ref (CI runs this on PRs), e.g. `just contracts-check origin/main`
 contracts-check base="origin/main":
@@ -104,9 +105,11 @@ test:
         uv run pytest "$p/tests" --cov="$pkg" --cov-fail-under=80 -q; \
     done
 
-# OPA policy tests and OpenFGA model tests (skipped while the folders hold no tests)
+# OPA tool policy (spec 0005): format, strict check, tests at 100% line coverage; then the OpenFGA model tests
 policy:
-    if ls policy/*.rego >/dev/null 2>&1; then opa test policy/ -v; else echo "policy/: no Rego yet (feature 6)"; fi
+    opa fmt --fail -l policy/
+    opa check --strict policy/
+    opa test policy/ -v --threshold 100
     just authz-test
 
 # OpenFGA model tests against tuples exported from the dataset at a fixed anchor (spec 0004)
