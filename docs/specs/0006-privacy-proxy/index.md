@@ -1,7 +1,7 @@
 # 0006. Privacy proxy with directory aware masking and an encrypted per conversation mapping
 
 **Date**: 2026-10-09
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
