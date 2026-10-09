@@ -22,7 +22,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 3 | Fictional company dataset | Foundation (no cluster) | done |
 | 4 | Identity token & tool contracts | Foundation (no cluster) | done |
 | 5 | Record access model | Foundation (no cluster) | done |
-| 6 | Tool policy | Foundation (no cluster) | planned |
+| 6 | Tool policy | Foundation (no cluster) | in-progress |
 | 7 | Privacy proxy | Foundation (no cluster) | planned |
 | 8 | Cluster investigation & baseline | Foundation (cluster) | planned |
 | 9 | Identity & chat systems | Foundation (cluster) | planned |
@@ -87,7 +87,7 @@ spec [0002](../specs/0002-fictional-company-dataset/index.md) · code in `libs/t
 ### 4. Identity token & tool contracts · done · GA
 The signed token every call carries (human vs workflow worker, roles, request ID, 5 minute expiry) and the typed, versioned contract format every tool server publishes. Every service builds against these. No cluster needed.
 **Done when:** token issue and verify work in a shared library with tests for expiry, tampering and kind; the contract format is defined and `get_my_leave` is written in it.
-spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `libs/tessaro-auth/`, `libs/tessaro-contracts/`, `policy/data/`
+spec [0003](../specs/0003-identity-token-tool-contracts/index.md) · code in `libs/tessaro-auth/`, `libs/tessaro-contracts/`, `policy/`
 - [x] Design it (spec): `/architect identity token & tool contracts`
 - [x] Build it: `/develop identity token & tool contracts`
   - [x] Thin thread: mint a human token, verify it, project `get_my_leave` to an MCP tool (AC-1, AC-6, AC-15, AC-17)
@@ -115,10 +115,20 @@ spec [0004](../specs/0004-record-access-model/index.md) · code in `authz/`, `li
 - [x] Review it (fresh model): `/check review record access model`
 - [x] Document it: `/document record access model`
 
-### 6. Tool policy · needs a decision · GA
+### 6. Tool policy · in-progress · GA
 The OPA policy and data that decide which roles may call which tools, with write scopes usable only by workflow worker tokens. No cluster needed.
 **Done when:** policy tests cover every role and scope in PRD 8.2, and every human token is denied every write scope.
-- [ ] Design it (spec): `/architect tool policy`
+spec [0005](../specs/0005-tool-policy/index.md) · code in `policy/`, `libs/tessaro-auth/`, `libs/tessaro-contracts/`
+- [x] Design it (spec): `/architect tool policy`
+- [ ] Build it: `/develop tool policy`
+  - [ ] Thin thread: typed role scopes, flat `policy/` with generated data, the allow path and the Compose OPA check (AC-1, AC-2, AC-3, AC-11)
+  - [ ] Deny paths: deny reasons, kind and role mismatch, invalid input and defaults (AC-4, AC-5, AC-6, AC-7)
+  - [ ] Listing: `allowed_tools` on the shared helper (AC-8)
+  - [ ] Guards: full role by scope grid, fmt, strict check and 100% coverage, enum and drift pytests (AC-9, AC-10)
+- [ ] Verify it: `/check verify tool policy`
+- [ ] Test it: `/test tool policy`
+- [ ] Review it (fresh model): `/check review tool policy`
+- [ ] Document it: `/document tool policy`
 
 ### 7. Privacy proxy · needs a decision · GA
 OpenAI compatible proxy in front of the model: masks names, emails, phones, IBANs, addresses and employee IDs (plus a directory recognizer), keeps consistent encrypted placeholders per conversation, restores them in answers and tool arguments, and fails closed. The core runs locally. No cluster needed.
