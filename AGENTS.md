@@ -24,9 +24,10 @@ just fmt         # ruff fix + format
 just check       # lint, typecheck, test (80% per package), policy, charts: what CI runs
 just new-service <name> <namespace>   # stamp a service from templates/service
 just keys        # write dev token keys into .env (also run by `just init`)
-just contracts   # regenerate tool contract snapshots and OPA tool data
+just contracts   # regenerate tool contract snapshots and the OPA data in policy/ (tools.json, role_scopes.json)
 just contracts-check origin/main   # check contracts against the snapshots released on a base ref (CI, on PRs)
 just dataset --anchor <iso>   # export the fictional company dataset to dataset/build/ (gitignored)
+just policy      # opa fmt, opa check --strict and opa test at 100% coverage on policy/, then just authz-test
 just authz-test   # validate authz/model.fga, export seed tuples to authz/.build, run every authz/*.fga.yaml (part of `just policy`)
 just authz-load   # load the model and dataset tuples into local OpenFGA, then set OPENFGA_STORE_ID and OPENFGA_MODEL_ID in .env
 ```
@@ -75,6 +76,7 @@ Stored in `docs/specs/`, one folder per decision: `docs/specs/NNNN-title/index.m
 ## Context files
 
 - [authz/AGENTS.md](authz/AGENTS.md): the OpenFGA record access model and its CLI test files
+- [policy/AGENTS.md](policy/AGENTS.md): the OPA tool policy (Layer 1) and its generated data
 - [libs/tessaro-core/AGENTS.md](libs/tessaro-core/AGENTS.md) (shared plumbing: settings, logging, request IDs, health, app factory)
 - [libs/tessaro-auth/AGENTS.md](libs/tessaro-auth/AGENTS.md) (token issue and verify)
 - [libs/tessaro-contracts/AGENTS.md](libs/tessaro-contracts/AGENTS.md) (typed, versioned tool contracts)
