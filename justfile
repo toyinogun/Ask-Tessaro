@@ -16,9 +16,10 @@ init:
     just keys
     uv run pre-commit install
 
-# Write local dev token keys into .env (only when any of the three is missing or empty)
+# Write local dev token keys and privacy proxy keys into .env (only the missing or empty ones)
 keys:
     uv run python -m tessaro_auth.devkeys --env-file .env
+    uv run python -m tessaro_privacy_proxy.devkeys --env-file .env
 
 # Install the git pre-commit hooks (ruff, ruff format, mypy, file hygiene)
 hooks:
@@ -61,6 +62,10 @@ dev service port="":
     grep -v -E '^DEV_(ADAPTER|WORKER)_SIGNING_KEY=' .env > "$env_file" || true
     uv run --env-file "$env_file" --package {{ service }} uvicorn \
         "tessaro_{{ replace(service, "-", "_") }}.main:app" --reload --port "${port:-$default}"
+
+# Privacy proxy leak scan against the real Presidio analyzer (spec 0006 AC-13); run `just up` first
+leak-scan:
+    PRESIDIO_LIVE=1 uv run pytest services/privacy-proxy/tests -m presidio -q
 
 # Export the fictional company dataset to dataset/build/ (gitignored), e.g. `just dataset --anchor 2026-10-07T10:00+02:00`
 dataset *args:

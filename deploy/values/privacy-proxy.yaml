@@ -3,7 +3,8 @@ namespace: assistant
 image:
   repository: ghcr.io/REPLACE_OWNER/tessaro-privacy-proxy
   tag: scaffold # CI sets the git commit SHA
-existingSecret: privacy-proxy-secrets # PROXY_UPSTREAM_API_KEY, PROXY_MAPPING_KEY, Redis ACL password
+existingSecret: privacy-proxy-secrets # PROXY_UPSTREAM_API_KEY, PROXY_CLIENT_KEY, PROXY_MAPPING_KEY, PROXY_LOOKUP_KEY, Redis ACL password
+# PROXY_DIRECTORY_PATH and the nightly directory job arrive with the cluster features (spec 0006 follow up).
 env:
   PROXY_UPSTREAM_URL: https://api.deepseek.com
   PROXY_MAPPING_TTL_HOURS: 24

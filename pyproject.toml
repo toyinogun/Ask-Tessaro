@@ -7,6 +7,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "fakeredis[lua]>=2.32",
     "mypy>=1.18",
     "pre-commit>=4.3",
     "pytest>=8.4",
@@ -59,6 +60,9 @@ warn_required_dynamic_aliases = true
 addopts = "--import-mode=importlib"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "presidio: needs the real Presidio analyzer (PRESIDIO_LIVE=1, see `just leak-scan`)",
+]
 
 [tool.coverage.report]
 show_missing = true
