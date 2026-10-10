@@ -14,6 +14,8 @@ dist/
 .env
 *.dec.yaml
 age.key
+# Env files `just identity-secrets` writes and `just seal` reads (spec 0008 AC-8)
+.secrets/
 
 # Dataset export output (regenerate with `just dataset`)
 dataset/build/

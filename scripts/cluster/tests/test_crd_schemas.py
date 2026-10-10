@@ -200,7 +200,7 @@ def test_the_vendored_schemas_are_strict() -> None:
     """Every committed schema closes its top level object, so kubeconform -strict means it."""
     schemas_dir = SCRIPT.parents[2] / "charts" / "schemas"
     files = sorted(schemas_dir.rglob("*.json"))
-    assert len(files) == 4
+    assert len(files) == 5
     for path in files:
         schema = json.loads(path.read_text())
         assert schema["$schema"] == "http://json-schema.org/draft-07/schema#", path
