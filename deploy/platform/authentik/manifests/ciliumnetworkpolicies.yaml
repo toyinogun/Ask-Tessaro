@@ -4,6 +4,8 @@ apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
   name: authentik-db-to-apiserver
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
 spec:
   endpointSelector:
     matchLabels:
