@@ -83,8 +83,12 @@ jobs:
 
       # Started by hand, not as a service container: the runner's service health gate gives up
       # while the model is still loading on a slow runner. The wait step below is the only gate.
+      # --no-control-socket: gunicorn 25 starts its control socket thread before forking the
+      # worker, and now and then the forked worker deadlocks before it boots (never answers).
       - name: Start the analyzer
-        run: docker run --detach --name presidio --publish 5002:3000 "$PRESIDIO_IMAGE"
+        run: >-
+          docker run --detach --name presidio --publish 5002:3000
+          --env GUNICORN_CMD_ARGS=--no-control-socket "$PRESIDIO_IMAGE"
 
       - uses: astral-sh/setup-uv@v10.2.0
         with:

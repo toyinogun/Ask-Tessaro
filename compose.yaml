@@ -40,6 +40,10 @@ services:
     # Pinned by digest: the image the privacy proxy leak scan last passed against (spec 0006).
     image: mcr.microsoft.com/presidio-analyzer@sha256:286e3fa7f3a7426e775e8564fe1870f1ba8f999d3ab8bbb8cc46a44355d9d6e9
     ports: ["5002:3000"]
+    environment:
+      # gunicorn 25 starts its control socket thread before forking the worker; the fork can
+      # inherit a held lock and the worker never boots. Presidio needs no control socket.
+      GUNICORN_CMD_ARGS: --no-control-socket
 
 volumes:
   redis-data:
