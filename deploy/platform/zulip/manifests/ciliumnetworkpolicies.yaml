@@ -1,0 +1,18 @@
+# The CNPG instance manager talks to the Kubernetes API; a NetworkPolicy ipBlock is not reliable
+# under Cilium's kube proxy replacement, so this is a CiliumNetworkPolicy (spec 0007 conventions).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: zulip-db-to-apiserver
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: zulip-db
+  egress:
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "6443"
+              protocol: TCP

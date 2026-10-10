@@ -1,0 +1,143 @@
+# Zulip (spec 0008): the chat system, in namespace `chat`, chart zulip 2.3.0 (app 12.3-0).
+# Rendered and checked by `just platform` (AC-18); synced by deploy/argocd/zulip.yaml.
+#
+# Secrets map (the chart reads every password through a valueFrom map):
+#   sealed zulip-secrets (deploy/secrets/chat/), written by `just identity-secrets`:
+#     ZULIP_SECRET_KEY          -> SECRETS_secret_key
+#     ZULIP_OIDC_CLIENT_SECRET  -> SECRETS_social_auth_oidc_secret (equal to Authentik's copy)
+#     REDIS_PASSWORD            -> SECRETS_redis_password (and redis-server --requirepass)
+#     RABBITMQ_PASSWORD         -> SECRETS_rabbitmq_password (and RABBITMQ_DEFAULT_PASS)
+#   CNPG generated zulip-db-app, key password -> SECRETS_postgres_password (AC-3)
+# memcached has no password; its NetworkPolicy admits only the Zulip server (AC-5).
+
+image:
+  repository: ghcr.io/zulip/zulip-server
+  # Tag plus multi arch digest; the chart writes `<repository>:<tag>`.
+  tag: "12.3-0@sha256:76a1ecc4ba5470869d9609ef1ec16497b410189918b2daba85862183a59aa275"
+
+# No RBAC of any kind and no API token in the pod (AC-2)
+serviceAccount:
+  create: false
+
+# One replica that never surges: a StatefulSet replaces its pod in place (AC-17)
+podLabels:
+  tessaro.io/heavy: "true"
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              tessaro.io/heavy: "true"
+          namespaceSelector: {}
+
+resources:
+  requests:
+    memory: 1536Mi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Long polling for events, and uploads (AC-6)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-body-size: 25m
+  hosts:
+    - host: chat.tessaro.toyintest.org
+      paths:
+        - path: /
+  tls:
+    - secretName: zulip-tls
+      hosts:
+        - chat.tessaro.toyintest.org
+
+zulip:
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: longhorn
+  environment:
+    SETTING_RUNNING_IN_HELM: "True"
+    SETTING_EXTERNAL_HOST: chat.tessaro.toyintest.org
+    SETTING_ZULIP_ADMINISTRATOR: tessaro-admin@tessaro.example
+    # TLS ends at the ingress. An empty CERTIFICATES (12.x's name for the old DISABLE_HTTPS=true)
+    # serves plain HTTP; the forwarded scheme is trusted only from the ingress controller pods,
+    # which run in the cluster's pod network (node podCIDRs 10.42.0.0/24 to 10.42.3.0/24) (AC-6).
+    LOADBALANCER_IPS: 10.42.0.0/16
+    # Sign in through Authentik only; EmailAuthBackend stays on the server so the owner can
+    # exist before OIDC works, and the realm allows only OIDC (AC-11).
+    ZULIP_AUTH_BACKENDS: GenericOpenIdConnectBackend,EmailAuthBackend
+    SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS: >-
+      {"authentik": {"oidc_url": "https://auth.tessaro.toyintest.org/application/o/zulip/",
+      "display_name": "Tessaro", "client_id": "zulip",
+      "secret": get_secret("social_auth_oidc_secret"), "auto_signup": False}}
+    SETTING_SOCIAL_AUTH_OIDC_FULL_NAME_VALIDATED: "True"
+    SETTING_ROOT_DOMAIN_LANDING_PAGE: "False"
+    # Postgres without the hunspell dictionaries: the stock CNPG image (AC-4)
+    CONFIG_postgresql__missing_dictionaries: "true"
+    # Nothing calls out to the internet (AC-10); no EMAIL_HOST, so no SMTP server
+    SETTING_ZULIP_SERVICE_PUSH_NOTIFICATIONS: "False"
+    SETTING_ZULIP_SERVICE_SUBMIT_USAGE_STATISTICS: "False"
+    SETTING_ZULIP_SERVICE_SECURITY_ALERTS: "False"
+    SETTING_ENABLE_GRAVATAR: "False"
+    SETTING_INLINE_URL_EMBED_PREVIEW: "False"
+    SECRETS_secret_key:
+      valueFrom:
+        secretKeyRef:
+          name: zulip-secrets
+          key: ZULIP_SECRET_KEY
+    SECRETS_social_auth_oidc_secret:
+      valueFrom:
+        secretKeyRef:
+          name: zulip-secrets
+          key: ZULIP_OIDC_CLIENT_SECRET
+
+# Our own backing services (manifests/), never the bundled Bitnami charts (AC-2, AC-5)
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+rabbitmq:
+  enabled: false
+memcached:
+  enabled: false
+
+externalPostgresql:
+  host: zulip-db-rw
+  port: 5432
+  database: zulip
+  user: zulip
+  sslmode: require
+  password:
+    valueFrom:
+      secretKeyRef:
+        name: zulip-db-app
+        key: password
+
+externalRedis:
+  host: redis
+  port: 6379
+  password:
+    valueFrom:
+      secretKeyRef:
+        name: zulip-secrets
+        key: REDIS_PASSWORD
+
+externalRabbitmq:
+  host: rabbitmq
+  port: 5672
+  user: zulip
+  password:
+    valueFrom:
+      secretKeyRef:
+        name: zulip-secrets
+        key: RABBITMQ_PASSWORD
+
+externalMemcached:
+  host: memcached
+  port: 11211
+  # Empty on purpose: Zulip then skips SASL, and the official memcached image has none (AC-5).
+  password: ""

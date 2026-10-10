@@ -55,6 +55,12 @@
       "skillPath": "plugins/backend-development/skills/temporal-python-testing/SKILL.md",
       "computedHash": "b377094ba2b4d7fd9a1c6e7313bc54e07570f5ba802c62ad81d83d722ecc8539"
     },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/webapp-testing/SKILL.md",
+      "computedHash": "ad5b1fc52807e9afa4635e59218a026b164dc58b6c3f41b0f7c644dcd6ccf572"
+    },
     "workflow-orchestration-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",

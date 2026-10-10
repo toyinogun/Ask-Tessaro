@@ -1,0 +1,171 @@
+# Allow policies for `chat` on top of the baseline default-deny and allow-dns, one per path in
+# spec 0008 *Network paths*, following spec 0007 *Network conventions*.
+---
+# The UI and API through chat.tessaro.toyintest.org (TLS ends at the ingress)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zulip-server-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zulip
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+---
+# The Zulip server reaches its backing services, Authentik through the ingress controller (OIDC
+# discovery, token and JWKS calls to auth.), and the zulip adapter (outgoing webhook)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zulip-server-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zulip
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: zulip-db
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rabbitmq
+      ports:
+        - protocol: TCP
+          port: 5672
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: memcached
+      ports:
+        - protocol: TCP
+          port: 11211
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: assistant
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zulip-adapter
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Each backing service accepts only the Zulip server, on its own port
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zulip
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rabbitmq-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zulip
+      ports:
+        - protocol: TCP
+          port: 5672
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: memcached-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: memcached
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zulip
+      ports:
+        - protocol: TCP
+          port: 11211
+---
+# The database accepts Zulip on 5432 and the CNPG operator on 8000 (status) and 5432
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zulip-db-ingress
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: zulip-db
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zulip
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cnpg-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432

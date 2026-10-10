@@ -1,0 +1,39 @@
+# Authentik, the identity provider (spec 0008 AC-1), in namespace `identity`. Four sources: the
+# pinned upstream chart with this repo's values, the values ref, this repo's manifests folder
+# (CNPG cluster, allow policies, blueprints) and the namespace's SealedSecrets. Synced by
+# ask-tessaro in the fenced project `tessaro`; the chart repository is allowed in k3sprox-gitops.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: authentik
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: tessaro
+  sources:
+    - repoURL: https://charts.goauthentik.io
+      chart: authentik
+      targetRevision: 2026.8.3
+      helm:
+        releaseName: authentik
+        valueFiles:
+          - $values/deploy/platform/authentik/values.yaml
+    - repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+      targetRevision: main
+      path: deploy/platform/authentik/manifests
+    - repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+      targetRevision: main
+      path: deploy/secrets/identity
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: identity
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

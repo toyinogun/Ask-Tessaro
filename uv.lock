@@ -12,6 +12,7 @@ members = [
     "tessaro-contracts",
     "tessaro-core",
     "tessaro-dataset",
+    "tessaro-seed",
     "tool-gateway",
     "tools-people",
     "zulip-adapter",
@@ -855,6 +856,18 @@ requires-dist = [
 name = "tessaro-clients"
 version = "0.1.0"
 source = { editable = "libs/tessaro-clients" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "tessaro-dataset" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pydantic", specifier = ">=2.12" },
+    { name = "tessaro-dataset", editable = "libs/tessaro-dataset" },
+]
 
 [[package]]
 name = "tessaro-contracts"
@@ -905,6 +918,27 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12" },
     { name = "pydantic-settings", specifier = ">=2.11" },
     { name = "pyyaml", specifier = ">=6.0.2" },
+]
+
+[[package]]
+name = "tessaro-seed"
+version = "0.1.0"
+source = { editable = "libs/tessaro-seed" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "tessaro-clients" },
+    { name = "tessaro-dataset" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pydantic", specifier = ">=2.12" },
+    { name = "pydantic-settings", specifier = ">=2.11" },
+    { name = "tessaro-clients", editable = "libs/tessaro-clients" },
+    { name = "tessaro-dataset", editable = "libs/tessaro-dataset" },
 ]
 
 [[package]]

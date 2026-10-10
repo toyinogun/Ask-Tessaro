@@ -1,0 +1,40 @@
+# Zulip, the chat system (spec 0008 AC-1), in namespace `chat`. Four sources: the
+# pinned upstream chart with this repo's values, the values ref, this repo's manifests folder
+# (CNPG cluster, Redis, RabbitMQ, memcached, allow policies) and the namespace's SealedSecrets.
+# Synced by ask-tessaro in project `tessaro`; the OCI chart repository is allowed, and registered
+# with enableOCI, in k3sprox-gitops.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zulip
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: tessaro
+  sources:
+    - repoURL: ghcr.io/zulip/helm-charts
+      chart: zulip
+      targetRevision: 2.3.0
+      helm:
+        releaseName: zulip
+        valueFiles:
+          - $values/deploy/platform/zulip/values.yaml
+    - repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+      targetRevision: main
+      path: deploy/platform/zulip/manifests
+    - repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+      targetRevision: main
+      path: deploy/secrets/chat
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chat
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

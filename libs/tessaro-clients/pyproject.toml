@@ -3,7 +3,11 @@ name = "tessaro-clients"
 version = "0.1.0"
 description = "Per system client protocols, real httpx clients, and in memory fakes seeded from dataset/."
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "httpx>=0.28",
+    "pydantic>=2.12",
+    "tessaro-dataset",
+]
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]

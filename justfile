@@ -145,7 +145,7 @@ authz-load:
     uv run python -m tessaro_dataset.fgaload env --env-file .env \
         --store-json "$work/store.json" --write-json "$work/write.json"
 
-# Lint both charts and validate them, the Argo CD manifests and the sealed secrets (CRDs from charts/schemas/)
+# Lint both charts and validate them, the platform Applications, the Argo CD manifests and the sealed secrets (CRDs from charts/schemas/)
 charts:
     helm lint charts/tessaro-service --values charts/tessaro-service/ci/test-values.yaml
     for f in charts/tessaro-service/ci/test-values.yaml {{ values_files }}; do \
@@ -156,6 +156,7 @@ charts:
                 -schema-location default -schema-location '{{ crd_schemas }}'; \
     done
     just baseline
+    just platform
     echo "validate deploy/argocd, deploy/cluster-repo, deploy/secrets"
     find deploy/argocd deploy/cluster-repo deploy/secrets -name '*.yaml' -print0 \
         | xargs -0 kubeconform -strict -summary -kubernetes-version {{ kube_version }} \
@@ -182,6 +183,18 @@ baseline:
     done
     echo "baseline: $(wc -l <<< "$names" | tr -d ' ') namespaces, each with its guards"
 
+# Render each platform Application (pinned upstream chart plus its manifests folder), check it, validate it (spec 0008 AC-18)
+platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -rf .rendered/platform
+    uv run python scripts/cluster/platform_render.py --out .rendered/platform --kube-version {{ kube_version }}
+    shopt -s nullglob
+    files=(.rendered/platform/*.yaml)
+    if [ "${#files[@]}" -eq 0 ]; then exit 0; fi
+    kubeconform -strict -summary -kubernetes-version {{ kube_version }} \
+        -schema-location default -schema-location '{{ crd_schemas }}' "${files[@]}"
+
 # shellcheck the cluster scripts, then the offline tests for the cluster baseline (spec 0007)
 cluster-scripts:
     shellcheck -x scripts/cluster/*.sh scripts/cluster/tests/*.sh
@@ -189,17 +202,33 @@ cluster-scripts:
     uv run mypy scripts/cluster charts/tests deploy/tests
     uv run pytest scripts/cluster/tests charts/tests deploy/tests --cov=scripts/cluster --cov-fail-under=80 -q
 
-# Regenerate charts/schemas/ from the cluster's CRDs (after a Cilium, Sealed Secrets or Argo CD upgrade)
+# Regenerate charts/schemas/ from the cluster's CRDs (after a Cilium, Sealed Secrets, Argo CD or CNPG upgrade)
 schemas:
     rm -rf charts/schemas/*/
     kubectl --context "${TESSARO_KUBE_CONTEXT:?set TESSARO_KUBE_CONTEXT}" get crd \
         ciliumnetworkpolicies.cilium.io sealedsecrets.bitnami.com \
-        applications.argoproj.io appprojects.argoproj.io -o yaml \
+        applications.argoproj.io appprojects.argoproj.io clusters.postgresql.cnpg.io -o yaml \
         | uv run python scripts/cluster/crd_schemas.py --out charts/schemas
 
-# Seal a dotenv file (kept outside the repo or git ignored) into deploy/secrets/<namespace>/<name>.sealed.yaml
-seal namespace name env_file:
-    scripts/cluster/seal.sh {{ quote(namespace) }} {{ quote(name) }} {{ quote(env_file) }}
+# Write the identity and chat env files under .secrets/ and the local values in .env (only the missing ones; spec 0008 AC-8)
+identity-secrets:
+    uv run tessaro-seed identity-secrets --root .
+
+# Regenerate Authentik's groups blueprint (20-groups.yaml) from the dataset (spec 0008 AC-9)
+blueprints:
+    uv run tessaro-seed blueprints --root .
+
+# Fail when the committed groups blueprint differs from a fresh render of the dataset
+blueprints-check:
+    uv run tessaro-seed blueprints --root . --check
+
+# Reconcile the dataset's people, groups and channels into Authentik and Zulip; `--dry-run` only plans (spec 0008 AC-12)
+seed-identity *args:
+    uv run --env-file .env tessaro-seed identity {{ args }}
+
+# Seal a dotenv file (kept outside the repo or git ignored) into deploy/secrets/<namespace>/<name>.sealed.yaml; an optional Argo CD sync wave goes on it
+seal namespace name env_file wave="":
+    scripts/cluster/seal.sh {{ quote(namespace) }} {{ quote(name) }} {{ quote(env_file) }} {{ if wave == "" { "" } else { quote(wave) } }}
 
 # Prove NetworkPolicy, hostname egress and sealed secret scope on the live cluster (spec 0007 AC-6)
 netpol-proof:
@@ -231,4 +260,4 @@ new-service name namespace:
     echo "created $dest and deploy/values/{{ name }}.yaml; run 'uv lock' next"
 
 # Everything CI will run
-check: lint typecheck test policy charts cluster-scripts
+check: lint typecheck test policy charts cluster-scripts blueprints-check

@@ -1,0 +1,21 @@
+# tessaro-admin (spec 0008 AC-9): a superuser through Authentik's own `authentik Admins` group,
+# with the same email as the Zulip realm owner so the owner signs in to Zulip by OIDC. Not in
+# `staff`. The password comes from the sealed authentik-secrets; TOTP is added by its own flow.
+version: 1
+metadata:
+  name: Tessaro - admin
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  - model: authentik_core.user
+    id: tessaro-admin
+    identifiers:
+      username: tessaro-admin
+    attrs:
+      name: Tessaro Admin
+      email: tessaro-admin@tessaro.example
+      type: internal
+      is_active: true
+      password: !Env TESSARO_ADMIN_PASSWORD
+      groups:
+        - !Find [authentik_core.group, [name, authentik Admins]]

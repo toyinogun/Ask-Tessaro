@@ -3,7 +3,9 @@
 # Uses only the committed controller certificate, so it needs no cluster access. Strict scope:
 # the result decrypts only as Secret <name> in <namespace>; a rename means sealing again.
 #
-# Usage: seal.sh <namespace> <name> <env-file>
+# Usage: seal.sh <namespace> <name> <env-file> [<sync-wave>]
+# A sync wave (an integer) is written as the SealedSecret's `argocd.argoproj.io/sync-wave`, so the
+# Secret exists before anything in the same Application that reads it (spec 0008 AC-8).
 # The env file: one KEY=value per line, `#` comments and blank lines ignored, one pair of
 # matching single or double quotes stripped, no multiline values.
 set -euo pipefail
@@ -19,8 +21,9 @@ die() { echo "seal: $*" >&2; exit 1; }
 
 [ "${BASH_VERSINFO[0]}" -ge 4 ] || die "bash 4 or newer is required (found $BASH_VERSION)"
 
-[ "$#" -eq 3 ] || die "usage: just seal <namespace> <name> <env-file>"
-namespace="$1" name="$2" env_file="$3"
+[ "$#" -eq 3 ] || [ "$#" -eq 4 ] || die "usage: just seal <namespace> <name> <env-file> [<sync-wave>]"
+namespace="$1" name="$2" env_file="$3" wave="${4:-}"
+[ -z "$wave" ] || [[ "$wave" =~ ^-?[0-9]+$ ]] || die "sync wave '$wave' is not an integer"
 
 allowed=false
 while IFS= read -r ns; do
@@ -93,6 +96,10 @@ trap cleanup EXIT
 printf 'apiVersion: v1\nkind: Secret\nmetadata:\n  name: %s\n  namespace: %s\ntype: Opaque\ndata:\n%s' \
     "$name" "$namespace" "$data" \
     | kubeseal --cert "$cert" --scope strict --format yaml > "$tmp"
+if [ -n "$wave" ]; then
+    command -v yq > /dev/null || die "yq is not installed (needed for a sync wave)"
+    WAVE="$wave" yq -i '.metadata.annotations."argocd.argoproj.io/sync-wave" = strenv(WAVE)' "$tmp"
+fi
 
 mv "$tmp" "$out_dir/$name.sealed.yaml"
 created_dir=false

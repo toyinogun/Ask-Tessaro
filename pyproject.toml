@@ -34,7 +34,7 @@ tessaro-dataset = { workspace = true }
 [tool.ruff]
 line-length = 100
 target-version = "py313"
-extend-exclude = ["templates", ".agents"]
+extend-exclude = ["templates", ".agents", ".claude"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM", "PT"]
