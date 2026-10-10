@@ -182,10 +182,12 @@ baseline:
     done
     echo "baseline: $(wc -l <<< "$names" | tr -d ' ') namespaces, each with its guards"
 
-# shellcheck the cluster scripts and run the offline seal tests
+# shellcheck the cluster scripts, then the offline tests for the cluster baseline (spec 0007)
 cluster-scripts:
     shellcheck -x scripts/cluster/*.sh scripts/cluster/tests/*.sh
     scripts/cluster/tests/seal_test.sh
+    uv run mypy scripts/cluster charts/tests deploy/tests
+    uv run pytest scripts/cluster/tests charts/tests deploy/tests --cov=scripts/cluster --cov-fail-under=80 -q
 
 # Regenerate charts/schemas/ from the cluster's CRDs (after a Cilium, Sealed Secrets or Argo CD upgrade)
 schemas:
