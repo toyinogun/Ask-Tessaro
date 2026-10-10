@@ -51,8 +51,8 @@ def test_the_seed_role_may_join_and_leave_every_dataset_group(dataset: Dataset) 
     }
     for entry in (e for e in entries if e["model"] == "authentik_core.group"):
         assert entry["permissions"] == [
-            {"permission": "add_user_to_group", "role": ["KeyOf", "seed-role"]},
-            {"permission": "remove_user_from_group", "role": ["KeyOf", "seed-role"]},
+            {"permission": "authentik_core.add_user_to_group", "role": ["KeyOf", "seed-role"]},
+            {"permission": "authentik_core.remove_user_from_group", "role": ["KeyOf", "seed-role"]},
         ]
 
 
