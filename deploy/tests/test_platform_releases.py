@@ -142,6 +142,22 @@ def test_one_cnpg_cluster_per_system(name: str, rendered: dict[str, list[Manifes
     assert spec["bootstrap"]["initdb"] == {"database": name, "owner": name}
 
 
+@pytest.mark.parametrize("name", sorted(APPS))
+def test_allow_policies_land_before_the_database(
+    name: str, rendered: dict[str, list[Manifest]]
+) -> None:
+    """Every allow policy syncs at wave -2, before the CNPG cluster at -1 that needs the API.
+
+    Without it the database's initdb pod cannot reach the Kubernetes API, the cluster never gets
+    healthy, and wave 0 (where the policy would otherwise land) never starts.
+    """
+    policies = [m for m in rendered[name] if m["kind"] in {"NetworkPolicy", "CiliumNetworkPolicy"}]
+    assert policies
+    for policy in policies:
+        annotations = policy["metadata"].get("annotations", {})
+        assert annotations.get("argocd.argoproj.io/sync-wave") == "-2", policy["metadata"]["name"]
+
+
 class TestAuthentik:
     """The Authentik release specifically."""
 
