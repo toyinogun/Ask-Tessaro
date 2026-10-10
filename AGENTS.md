@@ -8,6 +8,7 @@ AI employee service desk and lifecycle orchestrator for a fictional company. uv 
 - **Framework**: FastAPI on uvicorn; MCP Python SDK (Streamable HTTP) for tool servers; LangGraph agent; Temporal workflows
 - **Key dependencies**: pydantic + pydantic-settings, httpx (async), structlog (JSON, `audit=true` lines), OPA, OpenFGA, Presidio, Redis
 - **Package manager / tasks**: uv workspace (one root `uv.lock`), `just` task runner; one shared Helm chart `charts/tessaro-service`
+- **Deploy**: the cluster's existing Argo CD (Applications in the fenced AppProject `tessaro`, synced from `deploy/argocd/`) and Sealed Secrets 0.40.0; cluster decisions in [docs/specs/0007-cluster-baseline/index.md](docs/specs/0007-cluster-baseline/index.md)
 - Full decision: [docs/specs/0001-stack-architecture/index.md](docs/specs/0001-stack-architecture/index.md)
 
 ## Build approach
@@ -31,7 +32,13 @@ just leak-scan   # privacy proxy leak scan against the real Presidio analyzer (a
 just policy      # opa fmt, opa check --strict and opa test at 100% coverage on policy/, then just authz-test
 just authz-test   # validate authz/model.fga, export seed tuples to authz/.build, run every authz/*.fga.yaml (part of `just policy`)
 just authz-load   # load the model and dataset tuples into local OpenFGA, then set OPENFGA_STORE_ID and OPENFGA_MODEL_ID in .env
+just baseline    # lint and validate charts/tessaro-baseline; fails unless it renders exactly the 16 namespaces (part of `just charts`)
+just seal <namespace> <name> <env-file>   # seal a git ignored dotenv file into deploy/secrets/<namespace>/<name>.sealed.yaml (offline, strict scope)
+just netpol-proof   # live cluster: NetworkPolicy, hostname egress and sealed secret scope proof; append its output to docs/environment-report.md after each install step
+just ingress-smoke [--prod]   # live cluster: DNS, ingress and certificate smoke test (`--prod` hits Let's Encrypt limits, run it rarely)
 ```
+
+The live cluster recipes refuse to run unless `kubectl config current-context` equals `TESSARO_KUBE_CONTEXT` in `.env`. Cluster facts and decisions live in `docs/environment-report.md`.
 
 ## Specs
 
@@ -46,6 +53,7 @@ Stored in `docs/specs/`, one folder per decision: `docs/specs/NNNN-title/index.m
 - Types: `mypy --strict` with the pydantic plugin must pass; no `Any` without a comment saying why.
 - Errors: typed exceptions in the domain, mapped once to HTTP or MCP errors at the edge; never swallow an error, log it with the request ID.
 - Config: env vars only through a pydantic-settings class per service, failing fast at startup on a missing variable; never hardcode secrets.
+- Secrets in git: never a plain Secret; only strict scope SealedSecrets written by `just seal` into `deploy/secrets/<namespace>/`.
 - Docstrings on every public function, class and MCP tool (the tool docstring is the description the agent sees).
 - Tests first (TDD): a failing pytest before the code; coverage at least 80% per package; Rego via `opa test`, OpenFGA via `fga model test`.
 - Conventional commits (`feat:`, `fix:`, `docs:` ...), with no Claude or AI attribution lines in commits or PRs.
@@ -79,6 +87,9 @@ Stored in `docs/specs/`, one folder per decision: `docs/specs/NNNN-title/index.m
 
 - [authz/AGENTS.md](authz/AGENTS.md): the OpenFGA record access model and its CLI test files
 - [policy/AGENTS.md](policy/AGENTS.md): the OPA tool policy (Layer 1) and its generated data
+- [charts/AGENTS.md](charts/AGENTS.md): the shared service chart, the namespace baseline chart and the vendored CRD schemas
+- [deploy/AGENTS.md](deploy/AGENTS.md): Argo CD Applications in the fenced `tessaro` project, release values and sealed secrets
+- [scripts/cluster/AGENTS.md](scripts/cluster/AGENTS.md): the live cluster proofs (`netpol-proof`, `ingress-smoke`) and offline sealing
 - [libs/tessaro-core/AGENTS.md](libs/tessaro-core/AGENTS.md) (shared plumbing: settings, logging, request IDs, health, app factory)
 - [libs/tessaro-auth/AGENTS.md](libs/tessaro-auth/AGENTS.md) (token issue and verify)
 - [libs/tessaro-contracts/AGENTS.md](libs/tessaro-contracts/AGENTS.md) (typed, versioned tool contracts)

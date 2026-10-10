@@ -22,16 +22,18 @@ Before the resize (first inventory):
 | `k3sprox-wkr-pve2-0` | worker | 4 | 7.8 GiB | 7.8 GiB | 3.1 GiB (40%) |
 | `k3sprox-wkr-pve2-1` | worker | 4 | 7.8 GiB | 7.8 GiB | 3.1 GiB (39%) |
 
-After the resize (AC-2, 2026-10-10, workers at `memory_mb = 12288` with `system-reserved=memory=1Gi`):
+After the resize (AC-2, 2026-10-10, workers at `memory_mb = 12288` with `system-reserved=memory=1Gi` and a 100Mi hard memory eviction threshold):
 
 | Node | Role | CPU | Memory | Allocatable memory | Memory in use (`kubectl top`) |
 |---|---|---|---|---|---|
 | `k3sprox-cp-0` | control plane, etcd | 2 | 3.8 GiB | 3.8 GiB | 2.2 GiB (58%) |
-| `k3sprox-wkr-pve1-0` | worker | 4 | 11.7 GiB | 10.7 GiB | 1.7 GiB (15%) |
-| `k3sprox-wkr-pve2-0` | worker | 4 | 11.7 GiB | 10.7 GiB | 2.9 GiB (26%) |
-| `k3sprox-wkr-pve2-1` | worker | 4 | 11.7 GiB | 10.7 GiB | 2.9 GiB (27%) |
+| `k3sprox-wkr-pve1-0` | worker | 4 | 11.7 GiB | 10.6 GiB | 1.7 GiB (15%) |
+| `k3sprox-wkr-pve2-0` | worker | 4 | 11.7 GiB | 10.6 GiB | 2.9 GiB (26%) |
+| `k3sprox-wkr-pve2-1` | worker | 4 | 11.7 GiB | 10.6 GiB | 2.9 GiB (27%) |
 
-Each worker's kubelet `configz` (`kubectl get --raw /api/v1/nodes/<node>/proxy/configz`) shows `systemReserved: {memory: 1Gi}` with image GC thresholds 70 and 50. The reservation comes from a Terraform managed drop-in `/etc/rancher/k3s/config.yaml.d/60-system-reserved.yaml` (`terraform_data.kubelet_system_reserved` in `terraform-proxmox-k3s`, workers only, no k3s restart: each worker picked it up on its resize reboot). A full `terraform plan` showed no changes after the last worker.
+Each worker's kubelet `configz` (`kubectl get --raw /api/v1/nodes/<node>/proxy/configz`) shows `systemReserved: {memory: 1Gi}` and `evictionHard: {memory.available: 100Mi, imagefs.available: 5%, nodefs.available: 5%}` with image GC thresholds 70 and 50. The reservation comes from a Terraform managed drop-in `/etc/rancher/k3s/config.yaml.d/60-system-reserved.yaml` (`terraform_data.kubelet_system_reserved` in `terraform-proxmox-k3s`, workers only, no k3s restart: each worker picked it up on its resize reboot). A full `terraform plan` showed no changes after the last worker.
+
+The memory eviction threshold came later the same day. `/check verify` found `evictionHard` held only the k3s disk thresholds, because k3s replaces the kubelet's default `memory.available<100Mi` with its own disk only value. The same drop-in now sets all three thresholds in one argument (`kubelet_eviction_hard_memory`, default `100Mi`), and `k3s-agent` was restarted on one worker at a time (containers keep running). That took 100Mi from each worker's allocatable memory.
 
 ## Workloads
 
@@ -98,7 +100,7 @@ _Checked 2026-10-10._
 - kubectl through Tailscale with full admin; Helm 4.2 locally.
 - Argo CD 3.5.4 runs an app of apps: `root` from `git@github.com:toyinogun/k3sprox-gitops.git` (path `apps`) in project `default`. One other AppProject exists, `deployer`. Argo CD Image Updater is installed.
 - `argocd-cm` had no health check for `argoproj.io_Application`, so sync waves between child Applications would not wait on each other. It is now set through the Argo CD Helm values in `terraform-proxmox-k3s` (`configs.cm`), so waves wait before feature 9 adds siblings.
-- AppProject `tessaro` and root Application `ask-tessaro` are committed in `k3sprox-gitops` (`apps/ask-tessaro.yaml`, toyinogun/k3sprox-gitops#36). `ask-tessaro` and `tessaro-baseline` are `Synced` and `Healthy`. The fence holds: an Application in project `tessaro` aimed at `default` is refused with "application destination server 'https://kubernetes.default.svc' and namespace 'default' do not match any of the allowed destinations in project 'tessaro'".
+- AppProject `tessaro` and root Application `ask-tessaro` are committed in `k3sprox-gitops` (`apps/ask-tessaro.yaml`, toyinogun/k3sprox-gitops#36). `ask-tessaro` and `tessaro-baseline` are `Synced` and `Healthy`. The fence holds: an Application in project `tessaro` aimed at `default` is refused with "application destination server 'https://kubernetes.default.svc' and namespace 'default' do not match any of the allowed destinations in project 'tessaro'". One aimed at `assistant` whose source is `scripts/cluster/fixtures/fence-cluster-kind/` (a ClusterRole that grants nothing) fails its sync with "resource rbac.authorization.k8s.io:ClusterRole is not permitted in project tessaro", and no ClusterRole is created (checked 2026-10-10; the throwaway Application was deleted afterwards).
 - Bitnami Sealed Secrets 0.40.0 in `kube-system` (controller `sealed-secrets-controller`). Its public certificate is committed at `deploy/secrets/sealed-secrets.pem` (valid until 2036-04-28). KSOPS is not installed.
 
 ## Outbound access
@@ -155,7 +157,7 @@ What the rollout ran into:
 | | Allocatable on the three workers | Other tenants' memory requests | Left for Ask Tessaro (requests) |
 |---|---|---|---|
 | Before (2026-10-10) | 23.3 GiB | about 4.5 GiB (about 9.7 GiB in use) | about 18.8 GiB, short of the 21 GiB budget once usage is counted |
-| After the resize (2026-10-10, `solutio` removed) | 32.0 GiB (10.7 GiB per worker) | 4.2 GiB (about 7.4 GiB in use) | about 27.9 GiB, so the 21 GiB budget fits with about 7 GiB to spare |
+| After the resize (2026-10-10, `solutio` removed, eviction threshold set) | 31.7 GiB (10.6 GiB per worker) | 4.2 GiB (about 7.4 GiB in use) | about 27.5 GiB, so the 21 GiB budget fits with about 6.5 GiB to spare |
 
 The quotas add up to 31 GiB on purpose: they are ceilings per namespace, not a promise that every one fills at once (spec 0007).
 
@@ -253,11 +255,11 @@ Tailnet, checked by hand on 2026-10-10: a phone on mobile data with Tailscale co
 | Secrets | Sealed Secrets with `strict` scope, sealed by `just seal` into `deploy/secrets/<namespace>/` |
 | GitOps | AppProject `tessaro` and root Application `ask-tessaro` in `k3sprox-gitops`; `tessaro-baseline` and later Applications in this repo's `deploy/argocd/` |
 | Pod Security | `restricted` for our own namespaces; `baseline` enforced (audit and warn `restricted`) for off the shelf systems |
-| Capacity plan | Shrink `gh-runner-1` from 8 to 4 GiB, then grow the three workers from 8 to 12 GiB with kubelet `system-reserved=memory=1Gi`, one node at a time, before feature 9. Done 2026-10-10 |
+| Capacity plan | Shrink `gh-runner-1` from 8 to 4 GiB, then grow the three workers from 8 to 12 GiB with kubelet `system-reserved=memory=1Gi` and a 100Mi hard memory eviction threshold, one node at a time, before feature 9. Done 2026-10-10 |
 
 **Gaps still open**
 
-- A first CI job on `gh-runner-1` at 4 GiB (AC-2); its repository has had no runs since 2026-09-22.
+- A first CI job on `gh-runner-1` at 4 GiB, then `pve1` measured again (spec 0007 Follow-up, before feature 11); its repository has had no runs since 2026-09-22.
 - From spec 0007's follow ups: Zulip's Postgres image, Longhorn RWX for Frappe, the Sealed Secrets private key backup, a narrower kube context for agent work, and the move off ingress-nginx.
 
 ## Proof history

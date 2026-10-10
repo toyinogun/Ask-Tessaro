@@ -1,0 +1,11 @@
+# A cluster scoped kind other than Namespace, for the AppProject fence check (spec 0007 AC-3).
+# Nothing syncs this folder. The check points a throwaway Application in project `tessaro`
+# (destination `assistant`, no sync policy) at it and expects Argo CD's "not permitted in
+# project" error. The role grants nothing, so even a wrongly permitted sync would be harmless.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tessaro-fence-proof
+  labels:
+    app.kubernetes.io/part-of: ask-tessaro
+rules: []
