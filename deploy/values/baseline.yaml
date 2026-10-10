@@ -4,13 +4,13 @@
 # list in charts/tessaro-baseline/ci/expected-namespaces.txt.
 namespaces:
   - { name: identity, tier: system, quota: 2Gi }
-  - { name: chat, tier: system, quota: 4Gi }
-  - { name: it, tier: system, quota: 6Gi }
-  - { name: hr-finance, tier: system, quota: 5Gi }
+  - { name: chat, tier: system, quota: 3Gi }
+  - { name: it, tier: system, quota: 5Gi }
+  - { name: hr-finance, tier: system, quota: 4Gi }
   - { name: workplace, tier: system, quota: 1Gi }
   - { name: handbook, tier: system, quota: 1Gi }
   - { name: platform, tier: system, quota: 4Gi }
-  - { name: observability, tier: system, quota: 6Gi }
+  - { name: observability, tier: system, quota: 5Gi }
   - { name: assistant, tier: own, quota: 2Gi }
   - { name: tools-it, tier: own, quota: 512Mi }
   - { name: tools-people, tier: own, quota: 512Mi }
