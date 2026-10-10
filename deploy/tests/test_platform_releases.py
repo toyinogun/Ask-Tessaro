@@ -191,3 +191,103 @@ class TestAuthentik:
         """AC-6: auth.tessaro.toyintest.org to the server."""
         (ingress,) = objects(manifests, "Ingress").values()
         assert [r["host"] for r in ingress["spec"]["rules"]] == ["auth.tessaro.toyintest.org"]
+
+
+class TestZulip:
+    """The Zulip release specifically."""
+
+    @pytest.fixture
+    def manifests(self, rendered: dict[str, list[Manifest]]) -> list[Manifest]:
+        return rendered["zulip"]
+
+    @pytest.fixture
+    def env(self, manifests: list[Manifest]) -> dict[str, Any]:
+        return env_of(containers(objects(manifests, "StatefulSet")["zulip"])[0])
+
+    def test_one_heavy_replica_that_never_surges(self, manifests: list[Manifest]) -> None:
+        """AC-17: a single StatefulSet replica with the heavy label and its anti affinity."""
+        assert objects(manifests, "Deployment").keys() == {"redis", "rabbitmq", "memcached"}
+        server = objects(manifests, "StatefulSet")["zulip"]
+        assert server["spec"].get("replicas", 1) == 1
+        pod = server["spec"]["template"]
+        assert pod["metadata"]["labels"]["tessaro.io/heavy"] == "true"
+        terms = pod["spec"]["affinity"]["podAntiAffinity"]
+        preferred = terms["preferredDuringSchedulingIgnoredDuringExecution"][0]["podAffinityTerm"]
+        assert preferred["labelSelector"]["matchLabels"] == {"tessaro.io/heavy": "true"}
+
+    def test_backing_services_come_from_cnpg_and_our_own_deployments(
+        self, env: dict[str, Any]
+    ) -> None:
+        """AC-3 and AC-5: Postgres over TLS from CNPG; Redis, RabbitMQ, memcached from here."""
+        assert env["SETTING_REMOTE_POSTGRES_HOST"] == "zulip-db-rw"
+        assert env["SETTING_REMOTE_POSTGRES_SSLMODE"] == "require"
+        db = env["SECRETS_postgres_password"]["secretKeyRef"]
+        assert db == {"name": "zulip-db-app", "key": "password"}
+        assert env["SETTING_REDIS_HOST"] == "redis"
+        assert env["SETTING_RABBITMQ_HOST"] == "rabbitmq"
+        assert env["SETTING_MEMCACHED_LOCATION"] == "memcached:11211"
+        assert env["SECRETS_memcached_password"] == ""
+        for name, key in [
+            ("SECRETS_redis_password", "REDIS_PASSWORD"),
+            ("SECRETS_rabbitmq_password", "RABBITMQ_PASSWORD"),
+            ("SECRETS_secret_key", "ZULIP_SECRET_KEY"),
+            ("SECRETS_social_auth_oidc_secret", "ZULIP_OIDC_CLIENT_SECRET"),
+        ]:
+            assert env[name]["secretKeyRef"] == {"name": "zulip-secrets", "key": key}
+
+    def test_the_backing_services_share_the_sealed_passwords(
+        self, manifests: list[Manifest]
+    ) -> None:
+        """AC-5: official images, Redis and RabbitMQ read the same sealed passwords."""
+        deployments = objects(manifests, "Deployment")
+        images = {n: containers(d)[0]["image"] for n, d in deployments.items()}
+        assert images["redis"].startswith("docker.io/library/redis:")
+        assert images["rabbitmq"].startswith("docker.io/library/rabbitmq:")
+        assert images["memcached"].startswith("docker.io/library/memcached:")
+        redis = containers(deployments["redis"])[0]
+        assert redis["args"][:2] == ["--requirepass", "$(REDIS_PASSWORD)"]
+        assert env_of(redis)["REDIS_PASSWORD"]["secretKeyRef"]["key"] == "REDIS_PASSWORD"
+        rabbit = env_of(containers(deployments["rabbitmq"])[0])
+        assert rabbit["RABBITMQ_DEFAULT_USER"] == "zulip"
+        assert rabbit["RABBITMQ_DEFAULT_PASS"]["secretKeyRef"]["key"] == "RABBITMQ_PASSWORD"
+
+    def test_sign_in_is_oidc_through_authentik(self, env: dict[str, Any]) -> None:
+        """Feature design: one OIDC IdP, display name Tessaro, no auto signup."""
+        assert env["ZULIP_AUTH_BACKENDS"] == "GenericOpenIdConnectBackend,EmailAuthBackend"
+        idps = env["SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS"]
+        assert '"oidc_url": "https://auth.tessaro.toyintest.org/application/o/zulip/"' in idps
+        assert '"display_name": "Tessaro"' in idps
+        assert '"client_id": "zulip"' in idps
+        assert 'get_secret("social_auth_oidc_secret")' in idps
+        assert '"auto_signup": False' in idps
+        assert env["SETTING_SOCIAL_AUTH_OIDC_FULL_NAME_VALIDATED"] == "True"
+        assert env["SETTING_EXTERNAL_HOST"] == "chat.tessaro.toyintest.org"
+
+    def test_plain_http_behind_the_ingress(self, env: dict[str, Any]) -> None:
+        """AC-6: no certificates in the pod (CERTIFICATES unset), the ingress pods trusted."""
+        assert "CERTIFICATES" not in env
+        assert "DISABLE_HTTPS" not in env
+        assert env["LOADBALANCER_IPS"] == "10.42.0.0/16"
+
+    def test_nothing_calls_out_to_the_internet(self, env: dict[str, Any]) -> None:
+        """AC-10: push and other Zulip services off, no SMTP, no Gravatar, no link previews."""
+        assert env["SETTING_ZULIP_SERVICE_PUSH_NOTIFICATIONS"] == "False"
+        assert env["SETTING_ZULIP_SERVICE_SUBMIT_USAGE_STATISTICS"] == "False"
+        assert env["SETTING_ZULIP_SERVICE_SECURITY_ALERTS"] == "False"
+        assert env["SETTING_ENABLE_GRAVATAR"] == "False"
+        assert env["SETTING_INLINE_URL_EMBED_PREVIEW"] == "False"
+        assert "SETTING_EMAIL_HOST" not in env
+
+    def test_postgres_runs_without_hunspell(self, env: dict[str, Any]) -> None:
+        """AC-4: Zulip's documented mode for a stock Postgres."""
+        assert env["CONFIG_postgresql__missing_dictionaries"] == "true"
+
+    def test_the_ingress_serves_chat_with_long_polling_and_uploads(
+        self, manifests: list[Manifest]
+    ) -> None:
+        """AC-6: chat.tessaro.toyintest.org, 180 s read timeout, 25m bodies."""
+        (ingress,) = objects(manifests, "Ingress").values()
+        assert [r["host"] for r in ingress["spec"]["rules"]] == ["chat.tessaro.toyintest.org"]
+        annotations = ingress["metadata"]["annotations"]
+        assert annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] == "180"
+        assert annotations["nginx.ingress.kubernetes.io/proxy-body-size"] == "25m"

@@ -1,0 +1,13 @@
+# Our own objects for Zulip (spec 0008), applied by the third source of deploy/argocd/zulip.yaml
+# next to the upstream chart: its database and the backing services the chart's Bitnami
+# subcharts would otherwise bring.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chat
+resources:
+  - cnpg-cluster.yaml
+  - redis.yaml
+  - rabbitmq.yaml
+  - memcached.yaml
+  - networkpolicies.yaml
+  - ciliumnetworkpolicies.yaml
