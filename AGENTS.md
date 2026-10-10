@@ -31,7 +31,13 @@ just leak-scan   # privacy proxy leak scan against the real Presidio analyzer (a
 just policy      # opa fmt, opa check --strict and opa test at 100% coverage on policy/, then just authz-test
 just authz-test   # validate authz/model.fga, export seed tuples to authz/.build, run every authz/*.fga.yaml (part of `just policy`)
 just authz-load   # load the model and dataset tuples into local OpenFGA, then set OPENFGA_STORE_ID and OPENFGA_MODEL_ID in .env
+just baseline    # lint and validate charts/tessaro-baseline; fails unless it renders exactly the 16 namespaces (part of `just charts`)
+just seal <namespace> <name> <env-file>   # seal a git ignored dotenv file into deploy/secrets/<namespace>/<name>.sealed.yaml (offline, strict scope)
+just netpol-proof   # live cluster: NetworkPolicy, hostname egress and sealed secret scope proof; append its output to docs/environment-report.md after each install step
+just ingress-smoke [--prod]   # live cluster: DNS, ingress and certificate smoke test (`--prod` hits Let's Encrypt limits, run it rarely)
 ```
+
+The live cluster recipes refuse to run unless `kubectl config current-context` equals `TESSARO_KUBE_CONTEXT` in `.env`. Cluster facts and decisions live in `docs/environment-report.md`.
 
 ## Specs
 

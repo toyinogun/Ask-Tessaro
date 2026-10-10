@@ -153,7 +153,7 @@ When you are home: inspect the cluster read only, write `docs/environment-report
 **Done when:** the environment report exists with its decisions, NetworkPolicy enforcement is proven with a test deny between two pods, and every planned namespace exists with default deny.
 spec [0007](../specs/0007-cluster-baseline/index.md) · code in `charts/tessaro-baseline/`, `charts/tessaro-service/`, `deploy/`, `scripts/cluster/`
 - [x] Design it (spec): `/architect cluster investigation & baseline`
-- [ ] Build it: `/develop cluster investigation & baseline`
+- [x] Build it: `/develop cluster investigation & baseline`
   - [x] Capacity: shrink gh-runner-1 to 4 GiB, grow the workers to 12 GiB with the kubelet memory reservation (AC-2)
   - [x] Thin thread: proof script, sealing, baseline chart and the fenced Argo CD path on `assistant` only (AC-3, AC-5, AC-6, AC-7, AC-10, AC-12)
   - [x] Widen and harden: all 16 namespaces, Pod Security dry runs, the chart's `egressFQDNs` (AC-4, AC-5, AC-8, AC-11)
