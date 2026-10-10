@@ -24,7 +24,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 5 | Record access model | Foundation (no cluster) | done |
 | 6 | Tool policy | Foundation (no cluster) | done |
 | 7 | Privacy proxy | Foundation (no cluster) | done |
-| 8 | Cluster investigation & baseline | Foundation (cluster) | in-progress |
+| 8 | Cluster investigation & baseline | Foundation (cluster) | done |
 | 9 | Identity & chat systems | Foundation (cluster) | planned |
 | 10 | Platform services | Foundation (cluster) | planned |
 | 11 | Team systems | Foundation (cluster) | planned |
@@ -148,7 +148,7 @@ spec [0006](../specs/0006-privacy-proxy/index.md) · code in `services/privacy-p
 
 ## Foundation (cluster)
 
-### 8. Cluster investigation & baseline · in-progress
+### 8. Cluster investigation & baseline · done
 When you are home: inspect the cluster read only, write `docs/environment-report.md` (PRD 14.2 step 0), decide ingress, storage, hostnames, certificates and capacity, then lay down namespaces, default deny NetworkPolicies and any gaps found. The investigation inventory lives in the spec's rationale.
 **Done when:** the environment report exists with its decisions, NetworkPolicy enforcement is proven with a test deny between two pods, and every planned namespace exists with default deny.
 spec [0007](../specs/0007-cluster-baseline/index.md) · code in `charts/tessaro-baseline/`, `charts/tessaro-service/`, `deploy/`, `scripts/cluster/`
@@ -159,7 +159,7 @@ spec [0007](../specs/0007-cluster-baseline/index.md) · code in `charts/tessaro-
   - [x] Widen and harden: all 16 namespaces, Pod Security dry runs, the chart's `egressFQDNs` (AC-4, AC-5, AC-8, AC-11)
   - [x] Front door and report: wildcard DNS, ingress smoke, `docs/environment-report.md`, spec 0001 updates (AC-1, AC-9)
 - [x] Verify it: `/check verify cluster investigation & baseline`
-- [ ] Test it: `/test cluster investigation & baseline`
+- [x] Test it: `/test cluster investigation & baseline`
 
 ### 9. Identity & chat systems · needs a decision
 Install Authentik and Zulip, wire Zulip sign in through Authentik, create the groups from PRD 8.1, and load the dataset's people.
