@@ -22,16 +22,18 @@ Before the resize (first inventory):
 | `k3sprox-wkr-pve2-0` | worker | 4 | 7.8 GiB | 7.8 GiB | 3.1 GiB (40%) |
 | `k3sprox-wkr-pve2-1` | worker | 4 | 7.8 GiB | 7.8 GiB | 3.1 GiB (39%) |
 
-After the resize (AC-2, 2026-10-10, workers at `memory_mb = 12288` with `system-reserved=memory=1Gi`):
+After the resize (AC-2, 2026-10-10, workers at `memory_mb = 12288` with `system-reserved=memory=1Gi` and a 100Mi hard memory eviction threshold):
 
 | Node | Role | CPU | Memory | Allocatable memory | Memory in use (`kubectl top`) |
 |---|---|---|---|---|---|
 | `k3sprox-cp-0` | control plane, etcd | 2 | 3.8 GiB | 3.8 GiB | 2.2 GiB (58%) |
-| `k3sprox-wkr-pve1-0` | worker | 4 | 11.7 GiB | 10.7 GiB | 1.7 GiB (15%) |
-| `k3sprox-wkr-pve2-0` | worker | 4 | 11.7 GiB | 10.7 GiB | 2.9 GiB (26%) |
-| `k3sprox-wkr-pve2-1` | worker | 4 | 11.7 GiB | 10.7 GiB | 2.9 GiB (27%) |
+| `k3sprox-wkr-pve1-0` | worker | 4 | 11.7 GiB | 10.6 GiB | 1.7 GiB (15%) |
+| `k3sprox-wkr-pve2-0` | worker | 4 | 11.7 GiB | 10.6 GiB | 2.9 GiB (26%) |
+| `k3sprox-wkr-pve2-1` | worker | 4 | 11.7 GiB | 10.6 GiB | 2.9 GiB (27%) |
 
-Each worker's kubelet `configz` (`kubectl get --raw /api/v1/nodes/<node>/proxy/configz`) shows `systemReserved: {memory: 1Gi}` with image GC thresholds 70 and 50. The reservation comes from a Terraform managed drop-in `/etc/rancher/k3s/config.yaml.d/60-system-reserved.yaml` (`terraform_data.kubelet_system_reserved` in `terraform-proxmox-k3s`, workers only, no k3s restart: each worker picked it up on its resize reboot). A full `terraform plan` showed no changes after the last worker.
+Each worker's kubelet `configz` (`kubectl get --raw /api/v1/nodes/<node>/proxy/configz`) shows `systemReserved: {memory: 1Gi}` and `evictionHard: {memory.available: 100Mi, imagefs.available: 5%, nodefs.available: 5%}` with image GC thresholds 70 and 50. The reservation comes from a Terraform managed drop-in `/etc/rancher/k3s/config.yaml.d/60-system-reserved.yaml` (`terraform_data.kubelet_system_reserved` in `terraform-proxmox-k3s`, workers only, no k3s restart: each worker picked it up on its resize reboot). A full `terraform plan` showed no changes after the last worker.
+
+The memory eviction threshold came later the same day. `/check verify` found `evictionHard` held only the k3s disk thresholds, because k3s replaces the kubelet's default `memory.available<100Mi` with its own disk only value. The same drop-in now sets all three thresholds in one argument (`kubelet_eviction_hard_memory`, default `100Mi`), and `k3s-agent` was restarted on one worker at a time (containers keep running). That took 100Mi from each worker's allocatable memory.
 
 ## Workloads
 
@@ -155,7 +157,7 @@ What the rollout ran into:
 | | Allocatable on the three workers | Other tenants' memory requests | Left for Ask Tessaro (requests) |
 |---|---|---|---|
 | Before (2026-10-10) | 23.3 GiB | about 4.5 GiB (about 9.7 GiB in use) | about 18.8 GiB, short of the 21 GiB budget once usage is counted |
-| After the resize (2026-10-10, `solutio` removed) | 32.0 GiB (10.7 GiB per worker) | 4.2 GiB (about 7.4 GiB in use) | about 27.9 GiB, so the 21 GiB budget fits with about 7 GiB to spare |
+| After the resize (2026-10-10, `solutio` removed, eviction threshold set) | 31.7 GiB (10.6 GiB per worker) | 4.2 GiB (about 7.4 GiB in use) | about 27.5 GiB, so the 21 GiB budget fits with about 6.5 GiB to spare |
 
 The quotas add up to 31 GiB on purpose: they are ceilings per namespace, not a promise that every one fills at once (spec 0007).
 
@@ -253,7 +255,7 @@ Tailnet, checked by hand on 2026-10-10: a phone on mobile data with Tailscale co
 | Secrets | Sealed Secrets with `strict` scope, sealed by `just seal` into `deploy/secrets/<namespace>/` |
 | GitOps | AppProject `tessaro` and root Application `ask-tessaro` in `k3sprox-gitops`; `tessaro-baseline` and later Applications in this repo's `deploy/argocd/` |
 | Pod Security | `restricted` for our own namespaces; `baseline` enforced (audit and warn `restricted`) for off the shelf systems |
-| Capacity plan | Shrink `gh-runner-1` from 8 to 4 GiB, then grow the three workers from 8 to 12 GiB with kubelet `system-reserved=memory=1Gi`, one node at a time, before feature 9. Done 2026-10-10 |
+| Capacity plan | Shrink `gh-runner-1` from 8 to 4 GiB, then grow the three workers from 8 to 12 GiB with kubelet `system-reserved=memory=1Gi` and a 100Mi hard memory eviction threshold, one node at a time, before feature 9. Done 2026-10-10 |
 
 **Gaps still open**
 
