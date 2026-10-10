@@ -71,13 +71,17 @@ zulip:
     # exist before OIDC works, and the realm allows only OIDC (AC-11).
     ZULIP_AUTH_BACKENDS: GenericOpenIdConnectBackend,EmailAuthBackend
     SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS: >-
-      {"authentik": {"oidc_url": "https://auth.tessaro.toyintest.org/application/o/zulip/",
+      {"authentik": {"oidc_url": "https://auth.tessaro.toyintest.org/application/o/zulip",
       "display_name": "Tessaro", "client_id": "zulip",
       "secret": get_secret("social_auth_oidc_secret"), "auto_signup": False}}
     SETTING_SOCIAL_AUTH_OIDC_FULL_NAME_VALIDATED: "True"
     SETTING_ROOT_DOMAIN_LANDING_PAGE: "False"
     # Postgres without the hunspell dictionaries: the stock CNPG image (AC-4)
     CONFIG_postgresql__missing_dictionaries: "true"
+    # Zulip sends its outgoing HTTP through Smokescreen, which refuses private addresses; let
+    # through only the ingress address, so OIDC discovery, token and JWKS calls reach
+    # auth.tessaro.toyintest.org (AC-7). Nothing else private opens.
+    CONFIG_http_proxy__allow_addresses: "172.16.70.40"
     # Nothing calls out to the internet (AC-10); no EMAIL_HOST, so no SMTP server
     SETTING_ZULIP_SERVICE_PUSH_NOTIFICATIONS: "False"
     SETTING_ZULIP_SERVICE_SUBMIT_USAGE_STATISTICS: "False"

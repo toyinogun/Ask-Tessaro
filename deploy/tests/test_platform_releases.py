@@ -271,13 +271,19 @@ class TestZulip:
         """Feature design: one OIDC IdP, display name Tessaro, no auto signup."""
         assert env["ZULIP_AUTH_BACKENDS"] == "GenericOpenIdConnectBackend,EmailAuthBackend"
         idps = env["SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS"]
-        assert '"oidc_url": "https://auth.tessaro.toyintest.org/application/o/zulip/"' in idps
+        # No trailing slash: social-core appends `/.well-known/...`, and Authentik 404s on `//`.
+        assert '"oidc_url": "https://auth.tessaro.toyintest.org/application/o/zulip",' in idps
         assert '"display_name": "Tessaro"' in idps
         assert '"client_id": "zulip"' in idps
         assert 'get_secret("social_auth_oidc_secret")' in idps
         assert '"auto_signup": False' in idps
         assert env["SETTING_SOCIAL_AUTH_OIDC_FULL_NAME_VALIDATED"] == "True"
         assert env["SETTING_EXTERNAL_HOST"] == "chat.tessaro.toyintest.org"
+
+    def test_the_outgoing_proxy_lets_zulip_reach_authentik_only(self, env: dict[str, Any]) -> None:
+        """AC-7: Smokescreen refuses private addresses; only the ingress address is let through."""
+        assert env["CONFIG_http_proxy__allow_addresses"] == "172.16.70.40"
+        assert "CONFIG_http_proxy__allow_ranges" not in env
 
     def test_plain_http_behind_the_ingress(self, env: dict[str, Any]) -> None:
         """AC-6: no certificates in the pod (CERTIFICATES unset), the ingress pods trusted."""
