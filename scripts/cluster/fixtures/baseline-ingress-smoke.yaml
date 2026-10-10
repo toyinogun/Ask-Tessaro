@@ -1,0 +1,3 @@
+# The baseline chart rendered for the ingress smoke namespace (spec 0007 AC-9).
+namespaces:
+  - { name: tessaro-ingress-smoke, tier: own, quota: 1Gi }

@@ -1,0 +1,13 @@
+{{- range .Values.namespaces }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: budget
+  namespace: {{ .name }}
+  labels:
+    {{- include "baseline.labels" $ | nindent 4 }}
+spec:
+  hard:
+    requests.memory: {{ .quota }}
+{{- end }}

@@ -1,0 +1,16 @@
+assistant
+chat
+handbook
+hr-finance
+identity
+it
+observability
+platform
+tools-finance
+tools-handbook
+tools-identity
+tools-it
+tools-people
+tools-workplace
+workflows
+workplace

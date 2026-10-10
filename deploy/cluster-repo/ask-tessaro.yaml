@@ -1,0 +1,59 @@
+# Reference copy of apps/ask-tessaro.yaml in toyinogun/k3sprox-gitops (spec 0007 AC-3).
+# Nothing syncs this file; `just check` validates it, and it must match what is committed there.
+#
+# The fence lives in the cluster repo so this repo cannot widen its own permissions: project
+# `tessaro` may write only into the 16 Ask Tessaro namespaces, and at cluster scope may create
+# only Namespaces. The root entry ask-tessaro sits in project `default` like the other root
+# entries, because it creates Application objects in argocd, which `tessaro` must never do.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: tessaro
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Ask Tessaro (github.com/toyinogun/Ask-Tessaro), its own namespaces and nothing else.
+  sourceRepos:
+    - https://github.com/toyinogun/Ask-Tessaro.git
+    # Features 9 to 11 add their pinned upstream chart repositories here.
+  destinations:
+    - { server: https://kubernetes.default.svc, namespace: identity }
+    - { server: https://kubernetes.default.svc, namespace: chat }
+    - { server: https://kubernetes.default.svc, namespace: it }
+    - { server: https://kubernetes.default.svc, namespace: hr-finance }
+    - { server: https://kubernetes.default.svc, namespace: workplace }
+    - { server: https://kubernetes.default.svc, namespace: handbook }
+    - { server: https://kubernetes.default.svc, namespace: platform }
+    - { server: https://kubernetes.default.svc, namespace: observability }
+    - { server: https://kubernetes.default.svc, namespace: assistant }
+    - { server: https://kubernetes.default.svc, namespace: tools-it }
+    - { server: https://kubernetes.default.svc, namespace: tools-people }
+    - { server: https://kubernetes.default.svc, namespace: tools-finance }
+    - { server: https://kubernetes.default.svc, namespace: tools-workplace }
+    - { server: https://kubernetes.default.svc, namespace: tools-handbook }
+    - { server: https://kubernetes.default.svc, namespace: tools-identity }
+    - { server: https://kubernetes.default.svc, namespace: workflows }
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ask-tessaro
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+    targetRevision: main
+    path: deploy/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
