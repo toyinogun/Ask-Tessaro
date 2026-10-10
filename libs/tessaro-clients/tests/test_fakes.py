@@ -19,6 +19,10 @@ DATASET = load_dataset(anchor=ANCHOR)
 
 
 class TestFakeAuthentik:
+    async def test_email_changes_are_off_unless_set(self) -> None:
+        assert await FakeAuthentikDirectory().users_can_change_email() is False
+        assert await FakeAuthentikDirectory(email_changes=True).users_can_change_email() is True
+
     async def test_from_export_holds_the_groups_and_optionally_the_people(self) -> None:
         export = export_authentik(DATASET)
         empty = FakeAuthentikDirectory.from_export(export)

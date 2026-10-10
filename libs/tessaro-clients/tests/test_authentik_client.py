@@ -140,3 +140,12 @@ async def test_a_forbidden_write_surfaces_as_403() -> None:
     with pytest.raises(ApiError) as caught:
         await client.update_user(1, UserChange(name="x"))
     assert caught.value.status == 403
+
+
+@pytest.mark.parametrize("allowed", [True, False])
+async def test_users_can_change_email_reads_the_system_settings(allowed: bool) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert (request.method, request.url.path) == ("GET", "/api/v3/admin/settings/")
+        return httpx.Response(200, json={"default_user_change_email": allowed})
+
+    assert await directory(handler).users_can_change_email() is allowed

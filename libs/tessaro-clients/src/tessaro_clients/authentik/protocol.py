@@ -16,6 +16,10 @@ class AuthentikDirectory(Protocol):
         """The user with exactly this email, or None."""
         ...
 
+    async def users_can_change_email(self) -> bool:
+        """Whether users may change their own email (Zulip trusts Authentik's email claim)."""
+        ...
+
     async def list_groups(self) -> tuple[DirectoryGroup, ...]:
         """Every group (every page), sorted by name."""
         ...

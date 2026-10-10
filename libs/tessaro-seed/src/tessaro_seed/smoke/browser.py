@@ -10,24 +10,24 @@ from tessaro_seed.smoke.identity import SmokeError
 
 ZULIP_BUTTON = "Log in with Tessaro"
 IDENTIFIER_INPUT = 'input[name="uidField"]'
-# The first page also holds a hidden password field for password managers; take the visible one.
-PASSWORD_INPUT = 'input[name="password"]:visible'  # noqa: S105 (a CSS selector, not a secret)
-SUBMIT = 'button[type="submit"]'
+# The password stage's own field (the first stage also holds hidden helpers for password managers).
+PASSWORD_INPUT = "#ak-stage-password-input"  # noqa: S105 (a CSS selector, not a secret)
 STEP_MS = 30_000
 
 
 async def _authentik_sign_in(page: Page, username: str, password: str) -> None:
     await page.locator(IDENTIFIER_INPUT).fill(username)
-    await page.locator(SUBMIT).first.click()
+    await page.locator(IDENTIFIER_INPUT).press("Enter")
     await page.locator(PASSWORD_INPUT).fill(password)
-    await page.locator(SUBMIT).first.click()
+    await page.locator(PASSWORD_INPUT).press("Enter")
 
 
 async def _session_email(page: Page, site: str, username: str, password: str) -> str | None:
-    await page.goto(site, wait_until="networkidle")
+    await page.goto(site)
     await page.get_by_role("button", name=ZULIP_BUTTON).click()
     await _authentik_sign_in(page, username, password)
-    await page.wait_for_url(f"{site}/**", wait_until="networkidle")
+    # Back on Zulip; "load", not "networkidle", since the app long polls for events.
+    await page.wait_for_url(lambda url: url.startswith(f"{site}/"))
     response = await page.request.get(f"{site}/json/users/me")
     if not response.ok:
         return None

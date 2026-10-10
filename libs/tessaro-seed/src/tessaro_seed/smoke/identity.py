@@ -1,16 +1,20 @@
 """The identity smoke checks as plain logic over a `SignInBrowser` (spec 0008 AC-14).
 
 Check (a) lands first: the demo persona signs in to Zulip through Authentik and the session is
-theirs. Checks (b) to (e) join here as the build thickens.
+theirs. Before it, the email trust check: Authentik vouches for every email it sends Zulip, which
+holds only while users cannot change their own. Checks (b) to (e) join here as the build thickens.
 """
 
 from dataclasses import dataclass
 from typing import Protocol
 
+from tessaro_clients.authentik import AuthentikDirectory
+from tessaro_clients.errors import ClientError
 from tessaro_dataset import Dataset
 from tessaro_dataset.exports.authentik import export_authentik
 
 PERSONA_SIGN_IN = "a. demo persona signs in to Zulip through Authentik"
+EMAIL_TRUST = "email trust: users cannot change their own Authentik email"
 
 
 class SmokeError(Exception):
@@ -65,8 +69,25 @@ async def _persona_sign_in(
     return CheckResult(PERSONA_SIGN_IN, True, f"/json/users/me is {email}")
 
 
+async def _email_trust(directory: AuthentikDirectory) -> CheckResult:
+    try:
+        allowed = await directory.users_can_change_email()
+    except ClientError as error:
+        return CheckResult(EMAIL_TRUST, False, str(error))
+    if allowed:
+        return CheckResult(EMAIL_TRUST, False, "default_user_change_email is on; turn it off")
+    return CheckResult(EMAIL_TRUST, True, "default_user_change_email is off")
+
+
 async def smoke_identity(
-    browser: SignInBrowser, site: str, persona: Persona, password: str
+    browser: SignInBrowser,
+    directory: AuthentikDirectory,
+    site: str,
+    persona: Persona,
+    password: str,
 ) -> tuple[CheckResult, ...]:
     """Run every identity check in order; a failed check never stops the next one."""
-    return (await _persona_sign_in(browser, site, persona, password),)
+    return (
+        await _email_trust(directory),
+        await _persona_sign_in(browser, site, persona, password),
+    )

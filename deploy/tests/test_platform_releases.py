@@ -54,6 +54,28 @@ def rendered() -> dict[str, list[Manifest]]:
     return {name: platform_render.render(app, KUBE_VERSION) for name, app in APPS.items()}
 
 
+class _BlueprintLoader(yaml.SafeLoader):
+    """Reads blueprint YAML, turning Authentik's own tags into `{"!Tag": value}`."""
+
+
+def _tagged(loader: yaml.SafeLoader, suffix: str, node: yaml.Node) -> Manifest:
+    if isinstance(node, yaml.SequenceNode):
+        return {f"!{suffix}": loader.construct_sequence(node, deep=True)}
+    if isinstance(node, yaml.MappingNode):
+        return {f"!{suffix}": loader.construct_mapping(node, deep=True)}
+    return {f"!{suffix}": loader.construct_scalar(node)}  # type: ignore[arg-type]
+
+
+_BlueprintLoader.add_multi_constructor("!", _tagged)
+
+
+def blueprint_entries(name: str) -> list[Manifest]:
+    """The `entries` of one blueprint file under the Authentik manifests folder."""
+    path = REPO_ROOT / "deploy/platform/authentik/manifests/blueprints" / name
+    entries: list[Manifest] = yaml.load(path.read_text(), Loader=_BlueprintLoader)["entries"]  # noqa: S506 (SafeLoader subclass)
+    return entries
+
+
 def objects(manifests: list[Manifest], kind: str) -> dict[str, Manifest]:
     """Objects of one kind, by name."""
     return {m["metadata"]["name"]: m for m in manifests if m["kind"] == kind}
@@ -202,6 +224,32 @@ class TestAuthentik:
         worker = objects(manifests, "Deployment")["authentik-worker"]
         volumes = worker["spec"]["template"]["spec"]["volumes"]
         assert any(v.get("configMap", {}).get("name") == "authentik-blueprints" for v in volumes)
+
+    def test_the_zulip_provider_allows_the_code_flow(self) -> None:
+        """Feature design: Authentik refuses a provider's flow unless its grant type is listed."""
+        (provider,) = [
+            e
+            for e in blueprint_entries("40-zulip.yaml")
+            if e["model"] == "authentik_providers_oauth2.oauth2provider"
+        ]
+        assert provider["attrs"]["grant_types"] == ["authorization_code", "refresh_token"]
+
+    def test_zulip_gets_the_email_as_verified(self) -> None:
+        """Zulip refuses `email_verified: false`, which Authentik's built in mapping always sends.
+
+        Our mapping vouches for the email because users cannot change their own (the smoke checks
+        `default_user_change_email` stays off).
+        """
+        entries = blueprint_entries("40-zulip.yaml")
+        (mapping,) = [e for e in entries if e["model"] == "authentik_providers_oauth2.scopemapping"]
+        assert mapping["attrs"]["scope_name"] == "email"
+        assert '"email_verified": True' in mapping["attrs"]["expression"]
+        (provider,) = [
+            e for e in entries if e["model"] == "authentik_providers_oauth2.oauth2provider"
+        ]
+        mappings = provider["attrs"]["property_mappings"]
+        assert {"!KeyOf": mapping["id"]} in mappings
+        assert not any("scope-email" in str(m) for m in mappings)
 
     def test_the_ingress_serves_auth(self, manifests: list[Manifest]) -> None:
         """AC-6: auth.tessaro.toyintest.org to the server."""
