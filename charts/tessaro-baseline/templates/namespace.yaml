@@ -1,0 +1,19 @@
+{{- range .Values.namespaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "baseline.labels" $ | nindent 4 }}
+    tessaro.io/tier: {{ .tier }}
+    pod-security.kubernetes.io/enforce: {{ include "baseline.enforce" . }}
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+  annotations:
+    # Pruning or deleting an Application never deletes a namespace (spec 0007 AC-4).
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+{{- end }}

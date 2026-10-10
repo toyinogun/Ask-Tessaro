@@ -20,6 +20,7 @@ concurrency:
 env:
   KUBECONFORM_VERSION: v0.8.0
   FGA_VERSION: v0.8.1
+  KUBESEAL_VERSION: 0.40.0
 
 jobs:
   check:
@@ -40,13 +41,16 @@ jobs:
 
       - uses: open-policy-agent/setup-opa@v2.4.0
 
-      - name: Install kubeconform and the OpenFGA CLI
+      # shellcheck and yq come with the runner image; kubeseal runs the offline seal tests.
+      - name: Install kubeconform, kubeseal and the OpenFGA CLI
         run: |
           mkdir -p "$HOME/.local/bin"
           curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
             | tar -xz -C "$HOME/.local/bin" kubeconform
           curl -fsSL "https://github.com/openfga/cli/releases/download/${FGA_VERSION}/fga_${FGA_VERSION#v}_linux_amd64.tar.gz" \
             | tar -xz -C "$HOME/.local/bin" fga
+          curl -fsSL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" kubeseal
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install packages

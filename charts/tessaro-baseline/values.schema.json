@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["namespaces", "limits", "dns"],
+  "properties": {
+    "namespaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "tier", "quota"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+          "tier": { "enum": ["own", "system"] },
+          "quota": { "$ref": "#/$defs/memory" }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultRequest", "maxMemory"],
+      "properties": {
+        "defaultRequest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["memory", "cpu"],
+          "properties": {
+            "memory": { "$ref": "#/$defs/memory" },
+            "cpu": { "type": "string", "pattern": "^[0-9]+m?$" }
+          }
+        },
+        "maxMemory": { "$ref": "#/$defs/memory" }
+      }
+    },
+    "dns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "podLabels"],
+      "properties": {
+        "namespace": { "type": "string", "minLength": 1 },
+        "podLabels": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+  }
+}

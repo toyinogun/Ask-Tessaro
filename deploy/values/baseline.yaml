@@ -1,0 +1,21 @@
+# Release values for the cluster baseline (chart: charts/tessaro-baseline). Spec 0007.
+# Names and tiers: spec 0007 Namespaces. Quotas: spec 0007 Capacity budget (ceilings, not targets).
+# Removing a name leaves the namespace but drops its guards, so `just check` requires exactly the
+# list in charts/tessaro-baseline/ci/expected-namespaces.txt.
+namespaces:
+  - { name: identity, tier: system, quota: 2Gi }
+  - { name: chat, tier: system, quota: 4Gi }
+  - { name: it, tier: system, quota: 6Gi }
+  - { name: hr-finance, tier: system, quota: 5Gi }
+  - { name: workplace, tier: system, quota: 1Gi }
+  - { name: handbook, tier: system, quota: 1Gi }
+  - { name: platform, tier: system, quota: 4Gi }
+  - { name: observability, tier: system, quota: 6Gi }
+  - { name: assistant, tier: own, quota: 2Gi }
+  - { name: tools-it, tier: own, quota: 512Mi }
+  - { name: tools-people, tier: own, quota: 512Mi }
+  - { name: tools-finance, tier: own, quota: 512Mi }
+  - { name: tools-workplace, tier: own, quota: 512Mi }
+  - { name: tools-handbook, tier: own, quota: 512Mi }
+  - { name: tools-identity, tier: own, quota: 512Mi }
+  - { name: workflows, tier: own, quota: 1Gi }

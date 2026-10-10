@@ -1,0 +1,18 @@
+{{- range .Values.namespaces }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+  namespace: {{ .name }}
+  labels:
+    {{- include "baseline.labels" $ | nindent 4 }}
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        memory: {{ $.Values.limits.defaultRequest.memory }}
+        cpu: {{ $.Values.limits.defaultRequest.cpu }}
+      max:
+        memory: {{ $.Values.limits.maxMemory }}
+{{- end }}

@@ -1,0 +1,12 @@
+# The shared service chart rendered as release `proof-client` (spec 0007 AC-6 step c). The proof
+# applies only its CiliumNetworkPolicy, which selects the client pod by its
+# app.kubernetes.io/name label, so the proof tests the chart's own egressFQDNs output.
+namespace: tessaro-netpol-proof
+image:
+  repository: curlimages/curl
+  tag: proof
+network:
+  ingress: []
+  egress: []
+  egressFQDNs:
+    - name: api.deepseek.com

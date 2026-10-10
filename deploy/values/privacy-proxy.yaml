@@ -20,5 +20,6 @@ network:
       ports: [6379]
     - namespace: platform # Presidio analyzer
       podLabels: { app.kubernetes.io/name: presidio-analyzer }
-  # The only internet path in the cluster (api.deepseek.com). CIDR or CNI policy: feature 8.
-  egressCIDRs: []
+  # The only internet path in the cluster (spec 0007 AC-11): a CiliumNetworkPolicy by host name.
+  egressFQDNs:
+    - name: api.deepseek.com

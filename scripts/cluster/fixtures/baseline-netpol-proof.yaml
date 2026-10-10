@@ -1,0 +1,4 @@
+# The baseline chart rendered for the proof namespace (spec 0007 AC-6 step b). netpol-proof.sh
+# applies only its NetworkPolicies, so the proof tests exactly what every real namespace gets.
+namespaces:
+  - { name: tessaro-netpol-proof, tier: own, quota: 1Gi }

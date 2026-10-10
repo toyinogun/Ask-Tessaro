@@ -1,0 +1,32 @@
+# The cluster baseline (spec 0007): the 16 Ask Tessaro namespaces, each with default-deny,
+# allow-dns, LimitRange `defaults` and ResourceQuota `budget`. Synced by ask-tessaro from
+# k3sprox-gitops (deploy/cluster-repo/ask-tessaro.yaml), in the fenced project `tessaro`.
+# Wave -10 puts it before every sibling Application later features add in this folder.
+# No resources finalizer: deleting this Application never deletes what it deployed, and the
+# Namespaces also carry Prune=false,Delete=false.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tessaro-baseline
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  project: tessaro
+  source:
+    repoURL: https://github.com/toyinogun/Ask-Tessaro.git
+    targetRevision: main
+    path: charts/tessaro-baseline
+    helm:
+      releaseName: tessaro-baseline
+      valueFiles:
+        - ../../deploy/values/baseline.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: assistant
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

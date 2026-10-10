@@ -3,7 +3,8 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 packages := `find libs services -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tr "\n" " " || true`
-values_files := `ls deploy/values/*.yaml 2>/dev/null | tr '\n' ' ' || true`
+values_files := `ls deploy/values/*.yaml 2>/dev/null | grep -v '/baseline\.yaml$' | tr '\n' ' ' || true`
+crd_schemas := "charts/schemas/{{ .Group }}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.json"
 kube_version := "1.33.0"
 
 default:
@@ -144,15 +145,67 @@ authz-load:
     uv run python -m tessaro_dataset.fgaload env --env-file .env \
         --store-json "$work/store.json" --write-json "$work/write.json"
 
-# Lint the shared chart and validate it rendered with every release values file
+# Lint both charts and validate them, the Argo CD manifests and the sealed secrets (CRDs from charts/schemas/)
 charts:
     helm lint charts/tessaro-service --values charts/tessaro-service/ci/test-values.yaml
     for f in charts/tessaro-service/ci/test-values.yaml {{ values_files }}; do \
         echo "render $f"; \
         helm lint charts/tessaro-service --quiet --values "$f"; \
         helm template "$(basename "$f" .yaml)" charts/tessaro-service --values "$f" \
-            | kubeconform -strict -summary -kubernetes-version {{ kube_version }}; \
+            | kubeconform -strict -summary -kubernetes-version {{ kube_version }} \
+                -schema-location default -schema-location '{{ crd_schemas }}'; \
     done
+    just baseline
+    echo "validate deploy/argocd, deploy/cluster-repo, deploy/secrets"
+    find deploy/argocd deploy/cluster-repo deploy/secrets -name '*.yaml' -print0 \
+        | xargs -0 kubeconform -strict -summary -kubernetes-version {{ kube_version }} \
+            -schema-location default -schema-location '{{ crd_schemas }}'
+
+# Lint and validate the cluster baseline, and require exactly the 16 namespaces of spec 0007 (AC-12)
+baseline:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    helm lint charts/tessaro-baseline --quiet --values deploy/values/baseline.yaml
+    rendered="$(helm template tessaro-baseline charts/tessaro-baseline --values deploy/values/baseline.yaml)"
+    kubeconform -strict -summary -kubernetes-version {{ kube_version }} <<< "$rendered"
+    names="$(yq -N 'select(.kind == "Namespace") | .metadata.name' <<< "$rendered" | sort)"
+    if ! diff <(echo "$names") charts/tessaro-baseline/ci/expected-namespaces.txt; then
+        echo "baseline: deploy/values/baseline.yaml must render exactly the namespaces in" \
+            "charts/tessaro-baseline/ci/expected-namespaces.txt (spec 0007 AC-12)" >&2
+        exit 1
+    fi
+    # Exactly default-deny and allow-dns, one LimitRange and one ResourceQuota per namespace (AC-5)
+    for ns in $names; do
+        got="$(yq -N "select(.metadata.namespace == \"$ns\") | .kind + \"/\" + .metadata.name" <<< "$rendered" | sort | tr '\n' ' ')"
+        want="LimitRange/defaults NetworkPolicy/allow-dns NetworkPolicy/default-deny ResourceQuota/budget "
+        [ "$got" = "$want" ] || { echo "baseline: $ns has [$got], expected [$want]" >&2; exit 1; }
+    done
+    echo "baseline: $(wc -l <<< "$names" | tr -d ' ') namespaces, each with its guards"
+
+# shellcheck the cluster scripts and run the offline seal tests
+cluster-scripts:
+    shellcheck -x scripts/cluster/*.sh scripts/cluster/tests/*.sh
+    scripts/cluster/tests/seal_test.sh
+
+# Regenerate charts/schemas/ from the cluster's CRDs (after a Cilium, Sealed Secrets or Argo CD upgrade)
+schemas:
+    rm -rf charts/schemas/*/
+    kubectl --context "${TESSARO_KUBE_CONTEXT:?set TESSARO_KUBE_CONTEXT}" get crd \
+        ciliumnetworkpolicies.cilium.io sealedsecrets.bitnami.com \
+        applications.argoproj.io appprojects.argoproj.io -o yaml \
+        | uv run python scripts/cluster/crd_schemas.py --out charts/schemas
+
+# Seal a dotenv file (kept outside the repo or git ignored) into deploy/secrets/<namespace>/<name>.sealed.yaml
+seal namespace name env_file:
+    scripts/cluster/seal.sh {{ quote(namespace) }} {{ quote(name) }} {{ quote(env_file) }}
+
+# Prove NetworkPolicy, hostname egress and sealed secret scope on the live cluster (spec 0007 AC-6)
+netpol-proof:
+    scripts/cluster/netpol-proof.sh
+
+# Ingress, DNS and certificate smoke test on the live cluster; `--prod` uses the real issuer (spec 0007 AC-9)
+ingress-smoke *args:
+    scripts/cluster/ingress-smoke.sh {{ args }}
 
 # Build one service image locally, e.g. `just image tool-gateway`
 image service:
@@ -176,4 +229,4 @@ new-service name namespace:
     echo "created $dest and deploy/values/{{ name }}.yaml; run 'uv lock' next"
 
 # Everything CI will run
-check: lint typecheck test policy charts
+check: lint typecheck test policy charts cluster-scripts

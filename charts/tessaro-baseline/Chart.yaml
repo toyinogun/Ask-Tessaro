@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tessaro-baseline
+description: Namespaces and their guards (default deny, DNS allow, LimitRange, ResourceQuota) for Ask Tessaro. Spec 0007.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

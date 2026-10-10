@@ -1,0 +1,19 @@
+# Defaults from spec 0007 (Capacity budget). The release values live in deploy/values/baseline.yaml.
+
+# One entry per namespace: name, tier (own or system) and the ResourceQuota on requests.memory.
+# own: Pod Security restricted. system: enforce baseline, audit and warn restricted.
+namespaces: []
+
+# LimitRange `defaults` in every namespace. No default limit on purpose: a container without a
+# limit gets maxMemory as its limit. No CPU limit (it only causes throttling on a cluster this size).
+limits:
+  defaultRequest:
+    memory: 128Mi
+    cpu: 50m
+  maxMemory: 4Gi
+
+# Cluster DNS, the only egress `allow-dns` opens.
+dns:
+  namespace: kube-system
+  podLabels:
+    k8s-app: kube-dns

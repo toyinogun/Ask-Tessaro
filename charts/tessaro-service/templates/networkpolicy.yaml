@@ -28,14 +28,6 @@ spec:
       {{- include "tessaro.ports" . | nindent 6 }}
       {{- end }}
     {{- end }}
-    {{- range $net.egressCIDRs }}
-    - to:
-        - ipBlock:
-            cidr: {{ .cidr }}
-      {{- if .ports }}
-      {{- include "tessaro.ports" . | nindent 6 }}
-      {{- end }}
-    {{- end }}
     {{- if $net.dns }}
     - to:
         - namespaceSelector:
