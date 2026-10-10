@@ -28,8 +28,9 @@ while IFS= read -r ns; do
 done < <(cat "$namespaces_file"; printf '%s\n' "${proof_namespaces[@]}")
 $allowed || die "namespace '$namespace' is not an Ask Tessaro namespace"
 
-[[ "$name" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]] && [ "${#name}" -le 253 ] \
-    || die "'$name' is not a valid Secret name"
+if ! [[ "$name" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]] || [ "${#name}" -gt 253 ]; then
+    die "'$name' is not a valid Secret name"
+fi
 
 [ -f "$env_file" ] || die "env file '$env_file' not found"
 env_abs="$(realpath "$env_file")"
@@ -67,8 +68,9 @@ while IFS= read -r line || [ -n "$line" ]; do
     seen[$key]=1
     first="${value:0:1}"
     if [ "$first" = '"' ] || [ "$first" = "'" ]; then
-        [ "${#value}" -ge 2 ] && [ "${value: -1}" = "$first" ] \
-            || die "line $line_no: unmatched quote in '$key' (multiline values are not supported)"
+        if [ "${#value}" -lt 2 ] || [ "${value: -1}" != "$first" ]; then
+            die "line $line_no: unmatched quote in '$key' (multiline values are not supported)"
+        fi
         value="${value:1:${#value}-2}"
     elif [[ "$value" =~ ^[[:space:]]|[[:space:]]$ ]]; then
         die "line $line_no: '$key' has leading or trailing spaces; quote the value to keep them"
