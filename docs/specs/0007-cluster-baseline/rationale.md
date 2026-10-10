@@ -16,7 +16,7 @@ Not deciding means features 9 to 11 each pick their own ingress, storage, secret
 
 ### Option 1: Reuse the existing platform, grow the workers, fence Ask Tessaro in
 
-Use the cluster's Cilium, ingress-nginx, MetalLB, cert-manager, Longhorn, CNPG, Argo CD and Sealed Secrets as they are. Close the memory gap by growing the three worker VMs to 16 GiB. Deliver namespaces, policies and guards from this repo through one Argo CD Application inside a dedicated AppProject defined in the cluster repo. Keep the UIs private on a new wildcard hostname.
+Use the cluster's Cilium, ingress-nginx, MetalLB, cert-manager, Longhorn, CNPG, Argo CD and Sealed Secrets as they are. Close the memory gap by growing the three worker VMs (first planned at 16 GiB, revised to 12 GiB once the hosts were checked; see *Capacity revision*). Deliver namespaces, policies and guards from this repo through one Argo CD Application inside a dedicated AppProject defined in the cluster repo. Keep the UIs private on a new wildcard hostname.
 
 **Pros**:
 - Nothing new to install, upgrade or learn before the first system goes in.
@@ -27,7 +27,7 @@ Use the cluster's Cilium, ingress-nginx, MetalLB, cert-manager, Longhorn, CNPG, 
 **Cons**:
 - Ask Tessaro inherits the shared tools' upgrade schedule and failures, including the retired ingress-nginx.
 - Sealed Secrets is not what PRD 14.3 and spec 0001 named, and sealed files cannot be decrypted locally.
-- Two repos change, and the resize is manual Proxmox work.
+- Three repos change (this one, `k3sprox-gitops` and `terraform-proxmox-k3s`), and the hosts leave only modest headroom.
 
 ### Option 2: Follow the PRD and spec 0001 to the letter
 
@@ -59,11 +59,24 @@ Run a dedicated virtual cluster (for example vcluster) or a second small k3s clu
 
 ## Rationale
 
-Option 1 wins because the cluster already has the right building blocks, and they are the boring, proven ones: Cilium for policy, cert-manager for certificates, Longhorn for replicated storage, CNPG for Postgres, Argo CD for GitOps. The single real gap the investigation found is memory, about 12 GiB free against roughly 21 GiB of planned requests, and that is cheaper to fix with RAM than with architecture. Growing the workers to 16 GiB fits the whole PRD stack and leaves headroom to keep the heavy stateful services on different nodes, which PRD 14.2 asks for.
+Option 1 wins because the cluster already has the right building blocks, and they are the boring, proven ones: Cilium for policy, cert-manager for certificates, Longhorn for replicated storage, CNPG for Postgres, Argo CD for GitOps. The single real gap the investigation found is memory, about 12 GiB free against roughly 21 GiB of planned requests, and that is cheaper to fix with RAM than with architecture. Growing the workers fits the whole PRD stack and leaves headroom to keep the heavy stateful services on different nodes, which PRD 14.2 asks for. The first plan said 16 GiB; checking the Proxmox hosts during the build cut that to 12 GiB (see *Capacity revision*).
 
 The isolation requirement shaped the two choices that depart from earlier documents. Cilium's `toFQDNs` is the only clean way to say "the proxy may reach `api.deepseek.com` and nothing else"; a CIDR list would be correct on the day it is written and wrong later. Sealed Secrets keeps PRD 14.3's intent (encrypted in git, decrypted only in the cluster) without patching a repo server every other tenant depends on. Losing local decryption is acceptable because local development already runs on `.env` and fakes.
 
 Option 2's public exposure buys nothing a demo on the tailnet does not already give, and costs a larger attack surface. Option 3 is the right call only if the other tenants were hostile or the cluster were about to be rebuilt; neither is true, and it would delay feature 9 by weeks. The AppProject fence gets most of Option 3's safety at a tiny fraction of the cost: Ask Tessaro's Applications cannot write outside their 16 namespaces, and because the fence lives in the cluster repo, this repo cannot widen it.
+
+### Capacity revision (2026-10-10, during the build)
+
+The first plan grew each worker to 16 GiB. When the build reached that step, a read only look at the two Proxmox hosts showed it cannot fit:
+
+| Host | RAM | VMs (memory) | Available | Notes |
+|---|---|---|---|---|
+| `pve1` | 31 GiB | `k3sprox-cp-0` 4, `homeassistant` 4, `k3sprox-wkr-pve1-0` 8, `gh-runner-1` 8 (each using 90% or more) | 6 GiB | 1.3 GiB of swap in use; KSM sharing about 740 MiB |
+| `pve2` | 31 GiB | `k3sprox-wkr-pve2-0` 8, `k3sprox-wkr-pve2-1` 8 | 12.5 GiB | no swap; host overhead about 2.5 GiB |
+
+The first plan also overstated the other tenants: about 10 GiB was their working set (including page cache), while their memory requests, which the scheduler and the quotas count, are about 4.5 GiB (`k3sprox-wkr-pve1-0` 3.4 GiB, `k3sprox-wkr-pve2-0` 0.4 GiB, `k3sprox-wkr-pve2-1` 0.7 GiB).
+
+Options weighed: leave `pve1` alone and grow only the `pve2` workers (about 29 GiB allocatable, about 3.5 GiB of headroom on requests); slim the stack to fit today's 8 GiB workers (cuts systems the PRD names); buy RAM (keeps 16 GiB but waits on hardware); or shrink `gh-runner-1` from 8 to 4 GiB and grow all three workers to 12 GiB. You chose the last: it keeps `pve1`'s committed total at today's 24 GiB, leaves about 3 GiB free on `pve2` (12 GiB rather than 13 GiB per worker, for QEMU overhead and spikes), and gives about 32 GiB allocatable, roughly 6 GiB above the other tenants' requests plus the 21 GiB budget. The quotas were trimmed from 35 to 31 GiB; they remain ceilings, deliberately larger in sum than the roughly 27.5 GiB left after the other tenants, while the 21 GiB of expected requests fits with room to spare. A cross check during the revision added the rollout safety rules now in AC-2 and build step 1 (the drop-in written without a restart, `kubelet-arg+`, the steady state host check, targeted plans that must show an in place update, drain flags and rollback order). It also offered growing only the `pve2` workers; that leaves about 2.4 GiB of headroom, too thin for this stack. The resize also moved from "manual Proxmox work" to the Terraform in `terraform-proxmox-k3s` that already manages the VMs, so the sizes live in code.
 
 Smaller calls made while writing the spec:
 
