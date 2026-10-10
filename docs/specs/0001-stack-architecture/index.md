@@ -86,7 +86,7 @@ deploy/
   values/<service>.yaml  one values file per release
   platform/              values for third party charts (cluster phase)
   argocd/                app of apps (cluster phase)
-  secrets/               SOPS encrypted `*.enc.yaml` (cluster phase)
+  secrets/               Sealed Secrets: `sealed-secrets.pem` and `<namespace>/<name>.sealed.yaml` (spec 0007)
 .github/workflows/       CI
 ```
 
@@ -117,11 +117,11 @@ Each service and lib uses the src layout (`src/tessaro_<name>/`, `tests/`). The 
 |---|---|---|
 | Code hosting and CI | GitHub (public repo) + GitHub Actions | Visible to reviewers; free CI |
 | Image registry | GHCR | The k3s nodes pull public images with no credentials (confirmed in the cluster investigation) |
-| Charts | One shared chart `charts/tessaro-service`: Deployment, Service, ServiceAccount, ConfigMap, NetworkPolicy, resource requests and limits, optional OPA sidecar. `namespace` is a required value; the chart never creates a Namespace (the cluster baseline does); the release name is the service name. Secrets are referenced by `existingSecret` name only, so rendering never needs SOPS | One chart to test; isolation applied identically to every service |
-| NetworkPolicy values | A `values.schema.json` validated shape: `network.ingress[]` and `network.egress[]`, each `{namespace, podLabels, ports}`, plus `network.dns: true` and `network.egressCIDRs[]`. Every pod carries `app.kubernetes.io/name: <service>` as the one standard label. The proxy's DeepSeek egress uses `egressCIDRs` or a CNI specific policy, decided in the cluster investigation (feature 8) | A plain NetworkPolicy cannot allow a hostname, so the exception is explicit |
+| Charts | One shared chart `charts/tessaro-service`: Deployment, Service, ServiceAccount, ConfigMap, NetworkPolicy, resource requests and limits, optional OPA sidecar. `namespace` is a required value; the chart never creates a Namespace (the cluster baseline does); the release name is the service name. Secrets are referenced by `existingSecret` name only, so rendering never needs a decryption key | One chart to test; isolation applied identically to every service |
+| NetworkPolicy values | A `values.schema.json` validated shape: `network.ingress[]` and `network.egress[]`, each `{namespace, podLabels, ports}`, plus `network.dns: true` and `network.egressFQDNs[]` (each `{name, ports}`, rendered as a CiliumNetworkPolicy `toFQDNs` rule with its DNS rule; spec 0007). Every pod carries `app.kubernetes.io/name: <service>` as the one standard label. Only the privacy proxy sets `egressFQDNs` (`api.deepseek.com`) | A plain NetworkPolicy cannot allow a hostname, so the exception is explicit |
 | Chart checks | `helm lint` + `helm template` piped to kubeconform, for every values file | Renders and validates with no cluster (the done line) |
-| Deploy | Argo CD app of apps pointing at `deploy/argocd/`; each Application sets the destination namespace | Desired state lives in git and is diffable; the UI is demo friendly. Reuse Argo CD if the cluster investigation finds it |
-| Secrets in the cluster | SOPS with age keys; KSOPS in the Argo CD repo server decrypts at sync time; plain Secrets land in each team's namespace | PRD 14.3; no extra operator or CRD; age keys live only in the `argocd` namespace |
+| Deploy | The cluster's existing Argo CD: root entry `ask-tessaro` and AppProject `tessaro` live in `k3sprox-gitops` and point at this repo's `deploy/argocd/`; each Application here sits in project `tessaro` and sets its destination namespace (spec 0007) | Desired state lives in git and is diffable; the UI is demo friendly; the fence lives in the cluster repo so this repo cannot widen its own permissions |
+| Secrets in the cluster | The cluster's existing Sealed Secrets controller (0.40.0, `kube-system`); `just seal` writes `strict` scope SealedSecrets into `deploy/secrets/<namespace>/`; the controller turns them into plain Secrets in each team's namespace (spec 0007, replacing SOPS and KSOPS) | PRD 14.3's intent (encrypted in git, decrypted only in the cluster) with no new plugin in the shared Argo CD |
 | Dependency updates | Renovate, grouped weekly PRs | Handles uv lockfiles, Dockerfiles, Helm chart versions and Actions in one config |
 
 ### CI pipeline
@@ -141,7 +141,7 @@ On every PR: `uv sync --locked`, ruff check and format check, mypy strict, pytes
 - Many deployables for a solo build: more images, values files and NetworkPolicies than a monolith. This is accepted because the isolation is the point of the demo.
 - In memory fakes can drift from the real APIs. Each real client must be proven against the cluster before its feature is `done` (already the scope's rule).
 - mypy strict slows early iteration on LangGraph and Temporal code, whose typings are loose in places. Expect targeted `# type: ignore[...]` lines with reasons.
-- Argo CD and KSOPS add an in cluster controller to run and upgrade. helmfile would have been lighter.
+- Ask Tessaro depends on the cluster's shared Argo CD and Sealed Secrets controller (spec 0007). helmfile would have been lighter.
 - Making the gateway MCP aware means it must track the MCP spec version the SDK speaks; an SDK major bump touches the gateway and every tool server at once.
 
 **Neutral**:
@@ -153,9 +153,9 @@ On every PR: `uv sync --locked`, ruff check and format check, mypy strict, pytes
 - [x] The repo is not yet under git. Run `git init`, create the public GitHub repo, and push before CI can run.
 - [ ] Before pinning the MCP SDK, run a short spike: one tool server, the gateway passing `tools/list` and `tools/call` through, and the agent's `langchain-mcp-adapters` client, including the `Authorization` header forwarded on each call. If `mcp` 2.x or the adapters do not fit, pin `mcp<2` (v2 and the adapter versions were unverified today; reports differ on whether FastMCP is still built in).
 - [x] Feature 4 must decide who mints workflow worker tokens: decided in [spec 0003](../0003-identity-token-tool-contracts/index.md), `tessaro-auth` `issue_worker_token` with its own `worker-*` key, given only to the jml-worker.
-- [ ] Feature 8 decides how the proxy's internet egress to `api.deepseek.com` is allowed (CIDR or a CNI policy), and the cluster baseline adds the Redis and gateway paths to its allowed path table.
+- [x] Feature 8 decides how the proxy's internet egress to `api.deepseek.com` is allowed: a CiliumNetworkPolicy `toFQDNs` rule rendered from `network.egressFQDNs` ([spec 0007](../0007-cluster-baseline/index.md)). The Redis and gateway paths are each service's own `network` values, per spec 0007's network conventions.
 - [ ] Optional MCP servers worth connecting once the systems run on the cluster: Langfuse (official), Argo CD (`argoproj-labs/mcp-for-argocd`), OpenFGA (`evansims/openfga-mcp`, community), and a Grafana/Loki server. Connecting one is a step in your Claude Code MCP settings.
 - [ ] Confirm `temporalio` and Presidio/spaCy wheels install on Python 3.13 at scaffold time (Python version support was unverified).
 - [ ] Add the main only image job (build and push `ghcr.io/<owner>/tessaro-<service>:<sha>` for every service, using `GITHUB_TOKEN` with `packages: write`) before feature 16 deploys our services. Deferred on 2026-10-07; see CI pipeline.
-- [ ] Cluster investigation (feature 8) decides: whether Argo CD already exists, the ingress and storage classes, and whether nodes can pull from GHCR. Revisit the Deploy and Secrets rows if it finds something different.
+- [x] Cluster investigation (feature 8) decides: Argo CD already exists and is reused, ingress class `nginx`, storage classes `longhorn` and `longhorn-1r`, and nodes pull from GHCR with no credentials ([spec 0007](../0007-cluster-baseline/index.md), `docs/environment-report.md`). The Deploy and Secrets rows are updated.
 - [x] `/audit` (feature 2) should capture this stack's conventions (layout, ports, health routes, logging fields, `just` recipes) in root `AGENTS.md`, plus pre commit hooks, and list the nine installed skills in its `## Agent skills` section. Declined as off stack: the Azure, AWS, Firebase, Entra, BetterAuth and Grafana Mimir/Beyla skills.
