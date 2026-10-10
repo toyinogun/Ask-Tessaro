@@ -1,0 +1,42 @@
+{{- /*
+Internet egress by host name (spec 0007 AC-11). A plain NetworkPolicy cannot allow a host name,
+so this adds a CiliumNetworkPolicy. Cilium learns the allowed addresses only from DNS answers its
+proxy sees, so the DNS rule must live in this same policy; without it the pod gets no egress.
+*/ -}}
+{{- with .Values.network.egressFQDNs }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "tessaro.name" $ }}-egress-fqdn
+  namespace: {{ $.Values.namespace }}
+  labels:
+    {{- include "tessaro.labels" $ | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "tessaro.selectorLabels" $ | nindent 6 }}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    {{- range . }}
+    - toFQDNs:
+        - matchName: {{ .name | quote }}
+      toPorts:
+        - ports:
+            {{- range (.ports | default (list 443)) }}
+            - port: {{ . | quote }}
+              protocol: TCP
+            {{- end }}
+    {{- end }}
+{{- end }}

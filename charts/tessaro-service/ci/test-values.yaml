@@ -18,6 +18,7 @@ network:
       ports: [8080]
   egress:
     - namespace: platform
-  egressCIDRs:
-    - cidr: 203.0.113.0/24
-      ports: [443]
+  egressFQDNs:
+    - name: api.example.com
+    - name: upload.example.com
+      ports: [443, 8443]

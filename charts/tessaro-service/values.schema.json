@@ -38,14 +38,14 @@
         "ingress": { "type": "array", "items": { "$ref": "#/$defs/peer" } },
         "egress": { "type": "array", "items": { "$ref": "#/$defs/peer" } },
         "dns": { "type": "boolean" },
-        "egressCIDRs": {
+        "egressFQDNs": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["cidr"],
+            "required": ["name"],
             "properties": {
-              "cidr": { "type": "string", "minLength": 1 },
+              "name": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$" },
               "ports": { "$ref": "#/$defs/ports" }
             }
           }
