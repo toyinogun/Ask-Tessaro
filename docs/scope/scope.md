@@ -158,7 +158,7 @@ spec [0007](../specs/0007-cluster-baseline/index.md) · code in `charts/tessaro-
   - [x] Thin thread: proof script, sealing, baseline chart and the fenced Argo CD path on `assistant` only (AC-3, AC-5, AC-6, AC-7, AC-10, AC-12)
   - [x] Widen and harden: all 16 namespaces, Pod Security dry runs, the chart's `egressFQDNs` (AC-4, AC-5, AC-8, AC-11)
   - [x] Front door and report: wildcard DNS, ingress smoke, `docs/environment-report.md`, spec 0001 updates (AC-1, AC-9)
-- [ ] Verify it: `/check verify cluster investigation & baseline`
+- [x] Verify it: `/check verify cluster investigation & baseline`
 - [ ] Test it: `/test cluster investigation & baseline`
 
 ### 9. Identity & chat systems · needs a decision
