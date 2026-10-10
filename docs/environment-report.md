@@ -4,7 +4,7 @@ The step 0 report from PRD 14.2: what the cluster runs, what Ask Tessaro reuses,
 
 **How it was checked.** `kubectl` through the Tailscale operator proxy (context `k3sprox-operator.tail62ceef.ts.net`, a `system:masters` identity). The inventory used only `get`, `describe`, `top` and `auth`. The proofs (`just netpol-proof`, `just ingress-smoke`) write only into their own temporary namespaces and delete them on exit.
 
-**Status.** Sections marked _pending_ wait on the wildcard DNS record (an engineer action in Cloudflare) or on a first CI job on the resized runner.
+**Status.** One item is _pending_: a first CI job on the resized runner (see *Capacity*).
 
 ## Cluster
 
@@ -238,7 +238,7 @@ notAfter=Jan  8 08:35:31 2027 GMT
 ingress smoke: every step passed
 ```
 
-Tailnet: _pending, the manual check from a tailnet device away from the LAN._
+Tailnet, checked by hand on 2026-10-10: a phone on mobile data with Tailscale connected opens `https://smoke.tessaro.toyintest.org` and gets ingress-nginx's 404 (the smoke namespace was already deleted, so the default backend answering is the expected result). This needed a route that did not exist before: the only subnet router, pfSense, advertised `172.16.42.0/24` and `172.16.60.0/24` but nothing in `172.16.70.0/24`. pfSense now advertises `172.16.70.40/32` (the ingress IP only, so the tailnet does not reach the Proxmox hosts or nodes), the route is approved in the Tailscale admin console, and the existing pfSense Tailscale rule allows any tailnet source to `172.16.70.40` on TCP 443.
 
 ## Decisions
 
@@ -246,7 +246,7 @@ Tailnet: _pending, the manual check from a tailnet device away from the LAN._
 |---|---|
 | Ingress class | `nginx` (existing ingress-nginx on MetalLB `172.16.70.40`) |
 | Storage class | `longhorn` (3 replicas) for databases and Redis with AOF; `longhorn-1r` for data you can rebuild (Elasticsearch, ClickHouse, Loki, Langfuse blob store, RabbitMQ). Ask Tessaro keeps `longhorn` claims under 45 GiB and `longhorn-1r` claims under 40 GiB in total |
-| Hostnames | `<system>.tessaro.toyintest.org`: `auth`, `chat`, `helpdesk`, `assets`, `hr`, `desks`, `handbook`, `temporal`, `langfuse`, `grafana`, plus `smoke` for the smoke test. Private: LAN and tailnet only |
+| Hostnames | `<system>.tessaro.toyintest.org`: `auth`, `chat`, `helpdesk`, `assets`, `hr`, `desks`, `handbook`, `temporal`, `langfuse`, `grafana`, plus `smoke` for the smoke test. Private: LAN, and the tailnet through pfSense's subnet route `172.16.70.40/32` |
 | DNS | One Cloudflare record `*.tessaro.toyintest.org` A `172.16.70.40`, not proxied |
 | Certificates | One certificate per Ingress from ClusterIssuer `letsencrypt-prod` (DNS01 through Cloudflare) |
 | Internet egress | Only the privacy proxy, through the CiliumNetworkPolicy the shared chart renders from `network.egressFQDNs` (`api.deepseek.com`). Proven by the network proof, step c |
@@ -257,7 +257,6 @@ Tailnet: _pending, the manual check from a tailnet device away from the LAN._
 
 **Gaps still open**
 
-- The tailnet check of `https://smoke.tessaro.toyintest.org` from a device away from the LAN (AC-9).
 - A first CI job on `gh-runner-1` at 4 GiB (AC-2); its repository has had no runs since 2026-09-22.
 - From spec 0007's follow ups: Zulip's Postgres image, Longhorn RWX for Frappe, the Sealed Secrets private key backup, a narrower kube context for agent work, and the move off ingress-nginx.
 
