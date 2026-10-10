@@ -25,7 +25,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 6 | Tool policy | Foundation (no cluster) | done |
 | 7 | Privacy proxy | Foundation (no cluster) | done |
 | 8 | Cluster investigation & baseline | Foundation (cluster) | done |
-| 9 | Identity & chat systems | Foundation (cluster) | planned |
+| 9 | Identity & chat systems | Foundation (cluster) | in-progress |
 | 10 | Platform services | Foundation (cluster) | planned |
 | 11 | Team systems | Foundation (cluster) | planned |
 | 12 | Zulip adapter | Slice 1 | planned |
@@ -161,10 +161,18 @@ spec [0007](../specs/0007-cluster-baseline/index.md) · code in `charts/tessaro-
 - [x] Verify it: `/check verify cluster investigation & baseline`
 - [x] Test it: `/test cluster investigation & baseline`
 
-### 9. Identity & chat systems · needs a decision
+### 9. Identity & chat systems · in-progress
 Install Authentik and Zulip, wire Zulip sign in through Authentik, create the groups from PRD 8.1, and load the dataset's people.
 **Done when:** a dataset employee signs in to Zulip through Authentik and their groups appear in the token; the bot user exists.
-- [ ] Design it (spec): `/architect identity & chat systems`
+spec [0008](../specs/0008-identity-chat-systems/index.md) · code in `libs/tessaro-seed/`, `libs/tessaro-clients/`, `scripts/cluster/platform_render.py`
+- [x] Design it (spec): `/architect identity & chat systems`
+- [ ] Build it: `/develop identity & chat systems`
+  - [x] Plumbing and clients: `.secrets/`, CNPG schemas, platform chart rendering in `just charts`, `libs/tessaro-seed` with `identity-secrets`, `AuthentikDirectory` and `ZulipAdmin` with fakes, the reconcile logic (AC-8, AC-12, AC-13, AC-18)
+  - [ ] Thin thread: Authentik and Zulip synced through Argo CD with CNPG, policies, sealed secrets and the first blueprints; Zulip bootstrapped; full seed; the demo persona signs in to Zulip through Authentik (AC-1 to AC-3, AC-5 to AC-12, AC-14, AC-17)
+  - [ ] Thicken: adapter service account, admin TOTP flow, the bot and the handoff file, the rest of the smoke (AC-4, AC-9, AC-11, AC-14 to AC-16)
+  - [ ] Prove and record: network proof and egress checks, smoke output, versions, PVCs and memory in the environment report; spec 0007 follow up ticked (AC-7, AC-17)
+- [ ] Verify it: `/check verify identity & chat systems`
+- [ ] Test it: `/test identity & chat systems`
 
 ### 10. Platform services · needs a decision
 Install OpenFGA, Temporal (server and UI), Presidio, Redis, Langfuse, Grafana and Loki in their namespaces, with Authentik sign in for the UIs.
@@ -347,6 +355,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Self service actions**: leave requests, desk bookings, expense claims (2028) · needs a decision · GA
 - **Retention settings**: bot message, Temporal history and audit log retention (open question 4) · needs a decision
 - **Compliance paperwork**: DPIA, AI Act assessment, works council briefing (not code; owned by Legal and DPO in the case study)
+- **Chart and image bump policy**: a Renovate style check or a monthly manual pass for the pinned upstream charts and backing images (from spec 0008)
 
 ## Legend
 
