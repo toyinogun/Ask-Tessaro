@@ -30,6 +30,7 @@ class FakeAuthentikDirectory:
     passwords: dict[int, str] = field(default_factory=dict)
     writes: list[str] = field(default_factory=list)
     broken: frozenset[str] = frozenset()
+    email_changes: bool = False
 
     @classmethod
     def with_groups(cls, names: Iterable[str]) -> "FakeAuthentikDirectory":
@@ -104,6 +105,11 @@ class FakeAuthentikDirectory:
         """The user with this email, or None."""
         self._check("get_user_by_email")
         return next((u for u in self.users.values() if u.email == email), None)
+
+    async def users_can_change_email(self) -> bool:
+        """The `email_changes` flag (Authentik's default is off)."""
+        self._check("users_can_change_email")
+        return self.email_changes
 
     async def list_groups(self) -> tuple[DirectoryGroup, ...]:
         """Every group, sorted by name."""

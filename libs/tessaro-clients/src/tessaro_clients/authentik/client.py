@@ -77,6 +77,11 @@ class HttpAuthentikDirectory:
         raw = await self._pages("core/users/", {"email": email, "include_groups": "true"})
         return next((_user(u) for u in raw if u.get("email") == email), None)
 
+    async def users_can_change_email(self) -> bool:
+        """GET admin/settings/ (needs a superuser token): `default_user_change_email`."""
+        body = await self._call("GET", "admin/settings/")
+        return bool(body["default_user_change_email"])
+
     async def list_groups(self) -> tuple[DirectoryGroup, ...]:
         """Every group without its member list, sorted by name."""
         raw = await self._pages("core/groups/", {"include_users": "false"})

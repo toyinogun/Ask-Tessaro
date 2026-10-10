@@ -12,22 +12,36 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from tessaro_clients.authentik import HttpAuthentikDirectory, authentik_http
 from tessaro_dataset import DatasetError, load_dataset
 from tessaro_dataset.loader import DatasetPaths
 from tessaro_seed.settings import MissingSettings, SeedSettings
 from tessaro_seed.smoke.browser import PlaywrightSignIn
-from tessaro_seed.smoke.identity import CheckResult, persona_of, smoke_identity
+from tessaro_seed.smoke.identity import CheckResult, Persona, persona_of, smoke_identity
 
 EXIT_OK = 0
 EXIT_FAILED = 1
 EXIT_USAGE = 2
 
-NEEDED = ("zulip_site", "tessaro_demo_password")
+NEEDED = ("authentik_url", "authentik_bootstrap_token", "zulip_site", "tessaro_demo_password")
 
 
 def render(results: Sequence[CheckResult]) -> str:
     """One `PASS name: detail` or `FAIL name: detail` line per check."""
     return "\n".join(f"{'PASS' if r.passed else 'FAIL'} {r.name}: {r.detail}" for r in results)
+
+
+async def _run(settings: SeedSettings, persona: Persona) -> tuple[CheckResult, ...]:
+    # Every Authentik read in the smoke uses the bootstrap token (spec 0008 AC-14).
+    token = settings.secret("authentik_bootstrap_token")
+    async with authentik_http(str(settings.authentik_url), token) as http:
+        return await smoke_identity(
+            PlaywrightSignIn(),
+            HttpAuthentikDirectory(http),
+            str(settings.zulip_site),
+            persona,
+            settings.secret("tessaro_demo_password"),
+        )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -40,14 +54,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         settings = SeedSettings()
         settings.require(*NEEDED)
         persona = persona_of(load_dataset(DatasetPaths.under(args.root)))
-        results = asyncio.run(
-            smoke_identity(
-                PlaywrightSignIn(),
-                str(settings.zulip_site),
-                persona,
-                settings.secret("tessaro_demo_password"),
-            )
-        )
+        results = asyncio.run(_run(settings, persona))
     except MissingSettings as error:
         print(
             f"{error}; `just identity-secrets` and `just zulip-bootstrap` write them",

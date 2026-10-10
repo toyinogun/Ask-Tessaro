@@ -5,9 +5,18 @@ from pathlib import Path
 
 import pytest
 
+from tessaro_clients.authentik import FakeAuthentikDirectory
 from tessaro_dataset import Dataset
 from tessaro_seed.smoke import command
-from tessaro_seed.smoke.identity import Persona, SmokeError, persona_of, smoke_identity
+from tessaro_seed.smoke.identity import (
+    EMAIL_TRUST,
+    PERSONA_SIGN_IN,
+    CheckResult,
+    Persona,
+    SmokeError,
+    persona_of,
+    smoke_identity,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SITE = "https://chat.example"
@@ -29,6 +38,13 @@ class FakeBrowser:
         return self.accounts.get((username, password))
 
 
+LOCKED = FakeAuthentikDirectory()
+
+
+def by_name(results: tuple[CheckResult, ...]) -> dict[str, CheckResult]:
+    return {r.name: r for r in results}
+
+
 def persona(dataset: Dataset) -> Persona:
     return persona_of(dataset)
 
@@ -44,14 +60,16 @@ def test_the_persona_is_the_demo_cast_persona_from_the_export(dataset: Dataset) 
 async def test_a_session_with_the_persona_email_passes(dataset: Dataset) -> None:
     who = persona(dataset)
     browser = FakeBrowser({(who.username, DEMO): who.email})
-    (check,) = await smoke_identity(browser, SITE, who, DEMO)
+    check = by_name(await smoke_identity(browser, LOCKED, SITE, who, DEMO))[PERSONA_SIGN_IN]
     assert check.passed
     assert check.name == "a. demo persona signs in to Zulip through Authentik"
     assert browser.calls == [(SITE, who.username)]
 
 
 async def test_no_session_fails(dataset: Dataset) -> None:
-    (check,) = await smoke_identity(FakeBrowser(), SITE, persona(dataset), DEMO)
+    check = by_name(await smoke_identity(FakeBrowser(), LOCKED, SITE, persona(dataset), DEMO))[
+        PERSONA_SIGN_IN
+    ]
     assert not check.passed
     assert "no Zulip session" in check.detail
 
@@ -59,22 +77,47 @@ async def test_no_session_fails(dataset: Dataset) -> None:
 async def test_another_email_fails(dataset: Dataset) -> None:
     who = persona(dataset)
     browser = FakeBrowser({(who.username, DEMO): "someone@else"})
-    (check,) = await smoke_identity(browser, SITE, who, DEMO)
+    check = by_name(await smoke_identity(browser, LOCKED, SITE, who, DEMO))[PERSONA_SIGN_IN]
     assert not check.passed
     assert "someone@else" in check.detail
 
 
 async def test_a_browser_failure_is_a_failed_check_not_a_crash(dataset: Dataset) -> None:
     browser = FakeBrowser(failure="stuck on auth.example/if/flow/x")
-    (check,) = await smoke_identity(browser, SITE, persona(dataset), DEMO)
+    check = by_name(await smoke_identity(browser, LOCKED, SITE, persona(dataset), DEMO))[
+        PERSONA_SIGN_IN
+    ]
     assert not check.passed
     assert "stuck on" in check.detail
+
+
+@pytest.mark.parametrize(
+    ("directory", "passed"),
+    [
+        (FakeAuthentikDirectory(), True),
+        (FakeAuthentikDirectory(email_changes=True), False),
+        (FakeAuthentikDirectory(broken=frozenset({"users_can_change_email"})), False),
+    ],
+)
+async def test_email_trust_holds_only_while_users_cannot_change_their_email(
+    dataset: Dataset, directory: FakeAuthentikDirectory, passed: bool
+) -> None:
+    results = by_name(await smoke_identity(FakeBrowser(), directory, SITE, persona(dataset), DEMO))
+    assert results[EMAIL_TRUST].passed is passed
+
+
+async def test_the_checks_run_in_order(dataset: Dataset) -> None:
+    results = await smoke_identity(FakeBrowser(), LOCKED, SITE, persona(dataset), DEMO)
+    assert [r.name for r in results] == [EMAIL_TRUST, PERSONA_SIGN_IN]
 
 
 @pytest.fixture
 def env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ZULIP_SITE", SITE)
     monkeypatch.setenv("TESSARO_DEMO_PASSWORD", DEMO)
+    monkeypatch.setenv("AUTHENTIK_URL", "https://auth.example")
+    monkeypatch.setenv("AUTHENTIK_BOOTSTRAP_TOKEN", "bootstrap-token")
+    monkeypatch.setattr(command, "HttpAuthentikDirectory", lambda http: LOCKED)
 
 
 @pytest.mark.usefixtures("env")
@@ -87,7 +130,8 @@ def test_the_command_passes_when_every_check_passes(
     )
     assert command.main(["identity", "--root", str(REPO_ROOT)]) == command.EXIT_OK
     out = capsys.readouterr().out
-    assert out.startswith("PASS a. demo persona")
+    assert "PASS a. demo persona" in out
+    assert "FAIL" not in out
     assert DEMO not in out
 
 
@@ -103,10 +147,16 @@ def test_the_command_fails_naming_the_failed_check(
 def test_missing_settings_are_named(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.delenv("ZULIP_SITE", raising=False)
-    monkeypatch.delenv("TESSARO_DEMO_PASSWORD", raising=False)
+    for name in (
+        "ZULIP_SITE",
+        "TESSARO_DEMO_PASSWORD",
+        "AUTHENTIK_URL",
+        "AUTHENTIK_BOOTSTRAP_TOKEN",
+    ):
+        monkeypatch.delenv(name, raising=False)
     assert command.main(["identity", "--root", str(REPO_ROOT)]) == command.EXIT_FAILED
-    assert "ZULIP_SITE, TESSARO_DEMO_PASSWORD" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "AUTHENTIK_URL, AUTHENTIK_BOOTSTRAP_TOKEN, ZULIP_SITE, TESSARO_DEMO_PASSWORD" in err
 
 
 def test_an_unknown_smoke_is_bad_usage() -> None:
