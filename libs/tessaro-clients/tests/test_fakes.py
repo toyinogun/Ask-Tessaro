@@ -124,3 +124,10 @@ class TestFakeZulip:
         chat = FakeZulipAdmin(broken=frozenset({"list_channels"}))
         with pytest.raises(ApiError, match="500"):
             await chat.list_channels()
+
+    async def test_realm_updates_are_kept_and_recorded(self) -> None:
+        chat = FakeZulipAdmin()
+        await chat.update_realm({"invite_required": "true"})
+        await chat.update_realm({"name": "Tessaro"})
+        assert chat.realm_settings == {"invite_required": "true", "name": "Tessaro"}
+        assert chat.writes == ["update_realm invite_required", "update_realm name"]

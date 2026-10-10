@@ -143,3 +143,12 @@ async def test_an_error_status_carries_zulips_message() -> None:
 
     with pytest.raises(ApiError, match="already in use"):
         await admin(handler).create_user(NewChatUser(email="n@x", full_name="N", password=RANDOM))
+
+
+async def test_update_realm_patches_the_realm_with_form_values() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert (request.method, request.url.path) == ("PATCH", "/api/v1/realm")
+        assert form(request) == {"invite_required": "true", "name": "Tessaro"}
+        return ok()
+
+    await admin(handler).update_realm({"invite_required": "true", "name": "Tessaro"})

@@ -5,6 +5,7 @@ description = "Loads the fictional company into the platform systems (Authentik 
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "httpx>=0.28",
+    "playwright>=1.63.0",
     "pydantic>=2.12",
     "pydantic-settings>=2.11",
     "tessaro-clients",
