@@ -16,7 +16,9 @@ spec:
   description: Ask Tessaro (github.com/toyinogun/Ask-Tessaro), its own namespaces and nothing else.
   sourceRepos:
     - https://github.com/toyinogun/Ask-Tessaro.git
-    # Features 9 to 11 add their pinned upstream chart repositories here.
+    # Pinned upstream charts (spec 0008 AC-1); features 10 and 11 add theirs here.
+    - https://charts.goauthentik.io
+    - ghcr.io/zulip/helm-charts
   destinations:
     - { server: https://kubernetes.default.svc, namespace: identity }
     - { server: https://kubernetes.default.svc, namespace: chat }

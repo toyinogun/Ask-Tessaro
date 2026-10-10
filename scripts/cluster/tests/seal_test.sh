@@ -52,6 +52,15 @@ else
     fail "allows a proof namespace"
 fi
 
+if "$seal" chat waved "$good" -2 > /dev/null \
+    && [ "$(yq '.metadata.annotations."argocd.argoproj.io/sync-wave"' "$SEAL_OUT_ROOT/chat/waved.sealed.yaml")" = "-2" ] \
+    && [ "$(yq '.kind' "$SEAL_OUT_ROOT/chat/waved.sealed.yaml")" = "SealedSecret" ]; then
+    pass "writes the sync wave annotation"
+else
+    fail "writes the sync wave annotation"
+fi
+expect_error "refuses a sync wave that is not an integer" "not an integer" chat demo "$good" soon
+
 expect_error "refuses a namespace outside the list" "not an Ask Tessaro namespace" default demo "$good"
 expect_error "refuses a bad Secret name" "not a valid Secret name" assistant Bad_Name "$good"
 expect_error "refuses a missing env file" "not found" assistant demo "$work/missing.env"

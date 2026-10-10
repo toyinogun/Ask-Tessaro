@@ -24,14 +24,36 @@ PROOF_NAMESPACES = frozenset({"tessaro-netpol-proof", "tessaro-netpol-proof-b"})
 IN_CLUSTER = "https://kubernetes.default.svc"
 THIS_REPO = "https://github.com/toyinogun/Ask-Tessaro.git"
 FINALIZER = "resources-finalizer.argocd.argoproj.io"
+# The upstream chart repositories the fence allows (spec 0008 AC-1), each with the one chart and
+# pinned version an Application may install from it.
+UPSTREAM_CHARTS = {
+    "https://charts.goauthentik.io": ("authentik", "2026.8.3"),
+    "ghcr.io/zulip/helm-charts": ("zulip", "2.3.0"),
+}
 
 # Kubernetes objects are arbitrary nested mappings, so Any is the honest type here.
 Manifest = dict[str, Any]
 
 
+class _Tolerant(yaml.SafeLoader):
+    """SafeLoader that reads custom tags (Authentik blueprints' `!Env X`) as their plain value."""
+
+
+def _plain(loader: yaml.SafeLoader, suffix: str, node: yaml.Node) -> object:
+    if isinstance(node, yaml.SequenceNode):
+        return loader.construct_sequence(node)
+    if isinstance(node, yaml.MappingNode):
+        return loader.construct_mapping(node)
+    return loader.construct_scalar(node)  # type: ignore[arg-type]
+
+
+_Tolerant.add_multi_constructor("!", _plain)
+
+
 def docs(path: Path) -> list[Manifest]:
-    """Every YAML document in one file."""
-    return [doc for doc in yaml.safe_load_all(path.read_text()) if doc]
+    """Every YAML document in one file (custom tags read as plain values)."""
+    loaded = yaml.load_all(path.read_text(), Loader=_Tolerant)
+    return [doc for doc in loaded if doc]
 
 
 def all_docs(folder: Path) -> Iterator[tuple[Path, Manifest]]:
@@ -39,6 +61,12 @@ def all_docs(folder: Path) -> Iterator[tuple[Path, Manifest]]:
     for path in sorted(folder.rglob("*.yaml")):
         for doc in docs(path):
             yield path, doc
+
+
+def sources(app: Manifest) -> list[Manifest]:
+    """An Application's sources, whether it has one (`source`) or several (`sources`)."""
+    spec = app["spec"]
+    return list(spec["sources"]) if "sources" in spec else [spec["source"]]
 
 
 def child_applications() -> list[Manifest]:
@@ -80,9 +108,13 @@ class TestChildApplications:
 
     @pytest.mark.parametrize("app", child_applications(), ids=lambda a: a["metadata"]["name"])
     def test_each_from_this_repo_tracks_main(self, app: Manifest) -> None:
-        source = app["spec"]["source"]
-        if source["repoURL"] == THIS_REPO:
-            assert source["targetRevision"] == "main"
+        for source in sources(app):
+            if source["repoURL"] == THIS_REPO:
+                assert source["targetRevision"] == "main"
+
+    @pytest.mark.parametrize("app", child_applications(), ids=lambda a: a["metadata"]["name"])
+    def test_each_uses_only_this_repo_or_an_allowed_chart_repo(self, app: Manifest) -> None:
+        assert {s["repoURL"] for s in sources(app)} <= {THIS_REPO, *UPSTREAM_CHARTS}
 
     def test_the_baseline_syncs_first_and_heals_itself(self) -> None:
         [baseline] = [
@@ -117,10 +149,11 @@ class TestClusterRepoCopy:
         whitelist = cluster_repo["AppProject"]["spec"]["clusterResourceWhitelist"]
         assert whitelist == [{"group": "", "kind": "Namespace"}]
 
-    def test_the_project_accepts_this_repo_as_a_source(
+    def test_the_project_accepts_this_repo_and_exactly_the_upstream_charts(
         self, cluster_repo: dict[str, Manifest]
     ) -> None:
-        assert THIS_REPO in cluster_repo["AppProject"]["spec"]["sourceRepos"]
+        source_repos = cluster_repo["AppProject"]["spec"]["sourceRepos"]
+        assert sorted(source_repos) == sorted([THIS_REPO, *UPSTREAM_CHARTS])
 
     def test_the_project_never_allows_every_source_or_destination(
         self, cluster_repo: dict[str, Manifest]
@@ -202,3 +235,42 @@ class TestInternetEgress:
         for path in (DEPLOY / "values").glob("*.yaml"):
             values = yaml.safe_load(path.read_text()) or {}
             assert "egressCIDRs" not in values.get("network", {}), path
+
+
+def platform_applications() -> list[Manifest]:
+    """The Applications that install an upstream chart (spec 0008)."""
+    return [app for app in child_applications() if any("chart" in s for s in sources(app))]
+
+
+class TestPlatformApplications:
+    """Spec 0008 AC-1 and AC-8: four sources, pinned charts, wave 0, sealed secrets first."""
+
+    @pytest.mark.parametrize("app", platform_applications(), ids=lambda a: a["metadata"]["name"])
+    def test_four_sources_chart_values_manifests_and_secrets(self, app: Manifest) -> None:
+        name = app["metadata"]["name"]
+        namespace = app["spec"]["destination"]["namespace"]
+        chart, values, manifests, secrets = sources(app)
+        assert (chart["chart"], chart["targetRevision"]) == UPSTREAM_CHARTS[chart["repoURL"]]
+        assert chart["helm"]["releaseName"] == name
+        assert chart["helm"]["valueFiles"] == [f"$values/deploy/platform/{name}/values.yaml"]
+        assert values == {"repoURL": THIS_REPO, "targetRevision": "main", "ref": "values"}
+        assert manifests["path"] == f"deploy/platform/{name}/manifests"
+        assert secrets["path"] == f"deploy/secrets/{namespace}"
+        assert (DEPLOY / "platform" / name / "values.yaml").is_file()
+
+    @pytest.mark.parametrize("app", platform_applications(), ids=lambda a: a["metadata"]["name"])
+    def test_wave_zero_and_automated_with_prune(self, app: Manifest) -> None:
+        assert app["metadata"]["annotations"]["argocd.argoproj.io/sync-wave"] == "0"
+        assert app["spec"]["syncPolicy"]["automated"] == {"prune": True, "selfHeal": True}
+
+    @pytest.mark.parametrize("app", platform_applications(), ids=lambda a: a["metadata"]["name"])
+    def test_the_manifests_folder_targets_the_destination(self, app: Manifest) -> None:
+        name = app["metadata"]["name"]
+        kustomization = docs(DEPLOY / "platform" / name / "manifests" / "kustomization.yaml")[0]
+        assert kustomization["namespace"] == app["spec"]["destination"]["namespace"]
+
+    @pytest.mark.parametrize("app", platform_applications(), ids=lambda a: a["metadata"]["name"])
+    def test_its_sealed_secrets_sync_before_the_rest(self, app: Manifest) -> None:
+        folder = DEPLOY / "secrets" / app["spec"]["destination"]["namespace"]
+        for _, secret in all_docs(folder):
+            assert secret["metadata"]["annotations"]["argocd.argoproj.io/sync-wave"] == "-2"

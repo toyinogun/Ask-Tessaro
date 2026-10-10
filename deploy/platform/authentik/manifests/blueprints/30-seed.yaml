@@ -1,0 +1,47 @@
+# The seed's service account (spec 0008 *Security model*): role `tessaro-seed` on group
+# `svc-tessaro-seed`, holding only what `tessaro-seed identity` needs. Joining and leaving groups
+# is granted per dataset group in 20-groups.yaml, so this token can never put anyone (itself
+# included) into `authentik Admins`. No delete, no provider, flow or blueprint permissions.
+version: 1
+metadata:
+  name: Tessaro - seed service account
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  - model: authentik_rbac.role
+    id: seed-role
+    identifiers:
+      name: tessaro-seed
+    attrs:
+      permissions:
+        - authentik_core.view_user
+        - authentik_core.add_user
+        - authentik_core.change_user
+        - authentik_core.reset_user_password
+        - authentik_core.view_group
+  - model: authentik_core.group
+    id: seed-group
+    identifiers:
+      name: svc-tessaro-seed
+    attrs:
+      roles:
+        - !KeyOf seed-role
+  - model: authentik_core.user
+    id: seed-user
+    identifiers:
+      username: tessaro-seed
+    attrs:
+      name: Tessaro seed
+      type: service_account
+      is_active: true
+      groups:
+        - !KeyOf seed-group
+  - model: authentik_core.token
+    identifiers:
+      identifier: tessaro-seed-token
+      intent: api
+      expiring: false
+      user: !KeyOf seed-user
+    attrs:
+      key: !Env TESSARO_SEED_TOKEN
+      description: tessaro-seed identity (laptop only)

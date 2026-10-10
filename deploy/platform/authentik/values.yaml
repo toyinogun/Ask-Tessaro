@@ -1,0 +1,92 @@
+# Authentik (spec 0008): the identity provider, in namespace `identity`, chart authentik 2026.8.3.
+# Rendered and checked by `just platform` (AC-18); synced by deploy/argocd/authentik.yaml.
+#
+# Secrets: the sealed `authentik-secrets` (deploy/secrets/identity/) is the chart's existing
+# secret, loaded into both pods with envFrom. It holds AUTHENTIK_SECRET_KEY,
+# AUTHENTIK_BOOTSTRAP_PASSWORD and AUTHENTIK_BOOTSTRAP_TOKEN for Authentik itself, and
+# TESSARO_ADMIN_PASSWORD, TESSARO_SEED_TOKEN, ZULIP_ADAPTER_AUTHENTIK_TOKEN and
+# ZULIP_OIDC_CLIENT_SECRET for the blueprints (`!Env`). The database password comes from the
+# CNPG generated Secret `authentik-db-app`; no database credential is in git (AC-3).
+
+global:
+  image:
+    repository: ghcr.io/goauthentik/server
+    tag: "2026.8.3"
+    digest: sha256:ab9b4e8cc4ab3f8d1198d2db6aeea66bafea1963b3f2843589e0d163f97d9849
+  env:
+    # CNPG cluster authentik-db (manifests/cnpg-cluster.yaml), over TLS with CNPG's own CA (AC-3)
+    - name: AUTHENTIK_POSTGRESQL__HOST
+      value: authentik-db-rw
+    - name: AUTHENTIK_POSTGRESQL__NAME
+      value: authentik
+    - name: AUTHENTIK_POSTGRESQL__USER
+      value: authentik
+    - name: AUTHENTIK_POSTGRESQL__SSLMODE
+      value: require
+    - name: AUTHENTIK_POSTGRESQL__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-db-app
+          key: password
+    # Nothing calls out to the internet (AC-10)
+    - name: AUTHENTIK_DISABLE_UPDATE_CHECK
+      value: "true"
+    - name: AUTHENTIK_DISABLE_STARTUP_ANALYTICS
+      value: "true"
+    - name: AUTHENTIK_ERROR_REPORTING__ENABLED
+      value: "false"
+    - name: AUTHENTIK_AVATARS
+      value: initials
+    - name: AUTHENTIK_LOG_LEVEL
+      value: info
+
+authentik:
+  existingSecret:
+    secretName: authentik-secrets
+  error_reporting:
+    enabled: false
+
+# Fixed configuration as blueprints, mounted from the ConfigMap the manifests folder generates (AC-9)
+blueprints:
+  configMaps:
+    - authentik-blueprints
+
+server:
+  replicas: 1
+  automountServiceAccountToken: false
+  resources:
+    requests:
+      memory: 512Mi
+  containerSecurityContext: &restricted
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - auth.tessaro.toyintest.org
+    tls:
+      - secretName: authentik-tls
+        hosts:
+          - auth.tessaro.toyintest.org
+
+worker:
+  replicas: 1
+  automountServiceAccountToken: false
+  resources:
+    requests:
+      memory: 384Mi
+  containerSecurityContext: *restricted
+
+# No managed outposts, so no service account and no RBAC of any kind (AC-2)
+serviceAccount:
+  create: false
+
+postgresql:
+  enabled: false

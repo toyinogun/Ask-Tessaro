@@ -1,0 +1,22 @@
+# Authentik's database (AC-3): one instance, no PDB, `longhorn` storage, PostgreSQL 17.
+# CNPG writes the password into Secret authentik-db-app (key `password`); values.yaml reads it.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: authentik-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  instances: 1
+  enablePDB: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.11-system-trixie@sha256:53ffa45bab8fe6434b07273d99ff183ee243624f8af1aed3147ca5488c7b4efc
+  bootstrap:
+    initdb:
+      database: authentik
+      owner: authentik
+  storage:
+    storageClass: longhorn
+    size: 2Gi
+  resources:
+    requests:
+      memory: 256Mi

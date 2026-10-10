@@ -1,0 +1,20 @@
+# Our own objects for Authentik (spec 0008), applied by the third source of
+# deploy/argocd/authentik.yaml next to the upstream chart.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: identity
+resources:
+  - cnpg-cluster.yaml
+  - networkpolicies.yaml
+  - ciliumnetworkpolicies.yaml
+# The blueprints the chart mounts through blueprints.configMaps (AC-9). A fixed name, because the
+# chart values name it; Authentik reapplies a changed file on its own.
+configMapGenerator:
+  - name: authentik-blueprints
+    files:
+      - blueprints/10-admin.yaml
+      - blueprints/20-groups.yaml
+      - blueprints/30-seed.yaml
+      - blueprints/40-zulip.yaml
+generatorOptions:
+  disableNameSuffixHash: true

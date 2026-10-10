@@ -214,13 +214,21 @@ schemas:
 identity-secrets:
     uv run tessaro-seed identity-secrets --root .
 
+# Regenerate Authentik's groups blueprint (20-groups.yaml) from the dataset (spec 0008 AC-9)
+blueprints:
+    uv run tessaro-seed blueprints --root .
+
+# Fail when the committed groups blueprint differs from a fresh render of the dataset
+blueprints-check:
+    uv run tessaro-seed blueprints --root . --check
+
 # Reconcile the dataset's people, groups and channels into Authentik and Zulip; `--dry-run` only plans (spec 0008 AC-12)
 seed-identity *args:
     uv run --env-file .env tessaro-seed identity {{ args }}
 
-# Seal a dotenv file (kept outside the repo or git ignored) into deploy/secrets/<namespace>/<name>.sealed.yaml
-seal namespace name env_file:
-    scripts/cluster/seal.sh {{ quote(namespace) }} {{ quote(name) }} {{ quote(env_file) }}
+# Seal a dotenv file (kept outside the repo or git ignored) into deploy/secrets/<namespace>/<name>.sealed.yaml; an optional Argo CD sync wave goes on it
+seal namespace name env_file wave="":
+    scripts/cluster/seal.sh {{ quote(namespace) }} {{ quote(name) }} {{ quote(env_file) }} {{ if wave == "" { "" } else { quote(wave) } }}
 
 # Prove NetworkPolicy, hostname egress and sealed secret scope on the live cluster (spec 0007 AC-6)
 netpol-proof:
@@ -252,4 +260,4 @@ new-service name namespace:
     echo "created $dest and deploy/values/{{ name }}.yaml; run 'uv lock' next"
 
 # Everything CI will run
-check: lint typecheck test policy charts cluster-scripts
+check: lint typecheck test policy charts cluster-scripts blueprints-check

@@ -6,7 +6,7 @@ Exit codes: 0 success, 1 the job failed (the reason is printed), 2 bad usage.
 import sys
 from collections.abc import Callable, Sequence
 
-from tessaro_seed import identity_secrets
+from tessaro_seed import blueprints, identity_secrets
 from tessaro_seed.identity import command as identity
 
 EXIT_USAGE = 2
@@ -14,6 +14,7 @@ EXIT_USAGE = 2
 COMMANDS: dict[str, Callable[[Sequence[str]], int]] = {
     "identity-secrets": identity_secrets.main,
     "identity": identity.main,
+    "blueprints": blueprints.main,
 }
 
 
