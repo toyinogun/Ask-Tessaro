@@ -257,7 +257,7 @@ Tailnet, checked by hand on 2026-10-10: a phone on mobile data with Tailscale co
 
 **Gaps still open**
 
-- A first CI job on `gh-runner-1` at 4 GiB (AC-2); its repository has had no runs since 2026-09-22.
+- A first CI job on `gh-runner-1` at 4 GiB, then `pve1` measured again (spec 0007 Follow-up, before feature 11); its repository has had no runs since 2026-09-22.
 - From spec 0007's follow ups: Zulip's Postgres image, Longhorn RWX for Frappe, the Sealed Secrets private key backup, a narrower kube context for agent work, and the move off ingress-nginx.
 
 ## Proof history

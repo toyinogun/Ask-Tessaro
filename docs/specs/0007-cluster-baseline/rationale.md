@@ -6,7 +6,7 @@ The decision record behind [index.md](index.md). `/develop` builds from the inde
 
 Ask Tessaro moves from the laptop to a real k3s cluster. PRD 14.2 says nothing is installed until a read only investigation is written down, and that the report must end with decisions for ingress, storage, hostnames, certificates and capacity. Every later feature (9 to 16) installs into whatever this baseline lays down, so a wrong call here is paid for a dozen times.
 
-The cluster is not empty and not dedicated. It is a shared homelab cluster running other projects (n8n, solutio, the deployer platform and its test apps, provic, mool, site) and its own platform tooling, managed from a separate GitOps repo. Anything Ask Tessaro does must not disturb those tenants, and anything it adds becomes something the engineer operates for all of them.
+The cluster is not empty and not dedicated. It is a shared homelab cluster running other projects (n8n, solutio (retired 2026-10-10, see *Build findings*), the deployer platform and its test apps, provic, mool, site) and its own platform tooling, managed from a separate GitOps repo. Anything Ask Tessaro does must not disturb those tenants, and anything it adds becomes something the engineer operates for all of them.
 
 The forces: the PRD stack is heavy (Zammad with Elasticsearch, Frappe with ERPNext, Temporal, Langfuse with ClickHouse, Zulip, Authentik) and the cluster's memory is small; team isolation (PRD 14.4) depends on NetworkPolicies actually being enforced, and on exactly one pod reaching the internet by host name; the demo runs on fake data but should still look like something a security reviewer would accept; and this is a solo build, so every extra controller is time not spent on the product.
 
@@ -143,3 +143,13 @@ Collected with `kubectl` through the Tailscale operator proxy (`k3sprox-operator
 
 **Outbound access**
 - Nodes clearly reach the internet (public image pulls). Pod egress is checked by AC-7, because it needs a temporary pod, which is a write.
+
+### Build findings (2026-10-10)
+
+What the build found that the investigation did not, kept here so features 9 to 11 do not rediscover it. The facts and outputs are in `docs/environment-report.md`.
+
+- **The tailnet had no route to the cluster.** The investigation assumed tailnet devices reached `172.16.70.0/24`. They did not: pfSense, the only subnet router, advertised `172.16.42.0/24` and `172.16.60.0/24`. pfSense now advertises `172.16.70.40/32`, the ingress IP alone, which is all the private UIs need and keeps the Proxmox hosts and nodes off the tailnet.
+- **`argocd-cm` is owned by Terraform.** The Argo CD release is installed by `terraform-proxmox-k3s`, so the Application health check went into its Helm values, not into `k3sprox-gitops`.
+- **`solutio` is gone.** Its CNPG WAL archive to R2 had returned 403 since 2026-10-09 (last good backup 2026-09-17), so after the drain its former primaries could not rejoin as replicas. Its owner retired it and it was removed with its volumes, which also frees about 60 GiB of Longhorn space (3 replicas each) and about 0.3 GiB of memory requests.
+- **Draining needs care on this cluster.** Single instance CNPG clusters (`n8n-db`, `provic-pg`) block a drain through their primary PodDisruptionBudget, and draining the worker that runs the Tailscale operator cuts `kubectl`'s own connection. Both are now failure modes in `index.md`.
+- **The runner job check moved to a follow up.** `toyinogun/pdf2` had not run since 2026-09-22, and forcing a run would also trigger its dev deploy, so AC-2 now requires the runners back `online` and the first real job is tracked as a follow up.
