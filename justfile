@@ -222,9 +222,21 @@ blueprints:
 blueprints-check:
     uv run tessaro-seed blueprints --root . --check
 
+# Create the Zulip realm, its user defaults, its owner and its rules, and write the owner's key into .env (spec 0008 AC-11)
+zulip-bootstrap:
+    uv run --env-file .env tessaro-seed zulip-bootstrap --root .
+
 # Reconcile the dataset's people, groups and channels into Authentik and Zulip; `--dry-run` only plans (spec 0008 AC-12)
 seed-identity *args:
     uv run --env-file .env tessaro-seed identity {{ args }}
+
+# Install Playwright's Chromium for the identity smoke (not part of `just init`)
+smoke-deps:
+    uv run playwright install chromium
+
+# Live checks: the demo persona signs in to Zulip through Authentik, and the rest of AC-14 as it lands
+identity-smoke:
+    uv run --env-file .env tessaro-seed smoke identity --root .
 
 # Seal a dotenv file (kept outside the repo or git ignored) into deploy/secrets/<namespace>/<name>.sealed.yaml; an optional Argo CD sync wave goes on it
 seal namespace name env_file wave="":

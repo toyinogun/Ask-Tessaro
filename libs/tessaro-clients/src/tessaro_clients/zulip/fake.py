@@ -4,7 +4,7 @@ Holds state like the real system, appends every write to `writes`, and fails a m
 `broken` with a 500. ``realm`` False models a server before `just zulip-bootstrap`.
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
 from tessaro_clients.errors import ApiError
@@ -23,6 +23,7 @@ class FakeZulipAdmin:
     channels: dict[int, Channel] = field(default_factory=dict)
     subscribers: dict[int, set[int]] = field(default_factory=dict)
     passwords: dict[int, str] = field(default_factory=dict)
+    realm_settings: dict[str, str] = field(default_factory=dict)
     writes: list[str] = field(default_factory=list)
     broken: frozenset[str] = frozenset()
     hide_emails: bool = False
@@ -92,6 +93,12 @@ class FakeZulipAdmin:
         """Whether the realm was created."""
         self._check("realm_exists")
         return self.realm
+
+    async def update_realm(self, changes: Mapping[str, str]) -> None:
+        """Keep the changed settings; one write per setting name."""
+        for name in sorted(changes):
+            self._write("update_realm", name)
+        self.realm_settings.update(changes)
 
     async def list_users(self) -> tuple[ChatUser, ...]:
         """Every user; with ``hide_emails`` the view of a realm that hides addresses."""

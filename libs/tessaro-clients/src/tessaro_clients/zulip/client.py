@@ -65,6 +65,10 @@ class HttpZulipAdmin:
         body = await call_json(self.http, SYSTEM, "GET", "server_settings", auth=_NO_AUTH)
         return isinstance(body, dict) and bool(body.get("realm_name"))
 
+    async def update_realm(self, changes: Mapping[str, str]) -> None:
+        """PATCH /realm with the changed settings."""
+        await self._call("PATCH", "realm", data=changes)
+
     async def list_users(self) -> tuple[ChatUser, ...]:
         """GET /users, sorted by user_id."""
         body = await self._call("GET", "users")

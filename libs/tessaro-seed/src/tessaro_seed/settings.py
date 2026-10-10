@@ -26,6 +26,7 @@ class SeedSettings(BaseSettings):
     zulip_admin_email: str | None = None
     zulip_admin_api_key: SecretStr | None = None
     tessaro_demo_password: SecretStr | None = None
+    tessaro_kube_context: str | None = None
 
     @field_validator("authentik_url", "zulip_site")
     @classmethod

@@ -1,6 +1,6 @@
 """`ZulipAdmin`: what the seed and the identity tools need from Zulip, as the realm owner."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Protocol
 
 from tessaro_clients.zulip.models import Channel, ChatUser, NewChatUser
@@ -15,6 +15,10 @@ class ZulipAdmin(Protocol):
 
     async def realm_exists(self) -> bool:
         """True when the site's root domain holds a realm (before `just zulip-bootstrap`, False)."""
+        ...
+
+    async def update_realm(self, changes: Mapping[str, str]) -> None:
+        """Change realm settings (owner only); values are form encoded as Zulip expects them."""
         ...
 
     async def list_users(self) -> tuple[ChatUser, ...]:
