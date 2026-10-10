@@ -96,10 +96,12 @@ jobs:
       - name: Install packages
         run: uv sync --all-packages --locked
 
+      # Each probe is bounded: while the model loads, the port can accept a connection and never
+      # answer it, and an unbounded curl then waits until the job times out.
       - name: Wait for the analyzer
         run: |
           for _ in $(seq 1 120); do
-            curl -fsS http://localhost:5002/health && exit 0
+            curl -fsS --connect-timeout 2 --max-time 5 http://localhost:5002/health && exit 0
             sleep 5
           done
           echo "the Presidio analyzer never became healthy" >&2
