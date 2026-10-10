@@ -97,14 +97,21 @@ jobs:
         run: uv sync --all-packages --locked
 
       # Each probe is bounded: while the model loads, the port can accept a connection and never
-      # answer it, and an unbounded curl then waits until the job times out.
+      # answer it, and an unbounded curl then waits until the job times out. The whole wait has a
+      # deadline well inside the job timeout, so a failure always prints the container's logs.
       - name: Wait for the analyzer
         run: |
-          for _ in $(seq 1 120); do
-            curl -fsS --connect-timeout 2 --max-time 5 http://localhost:5002/health && exit 0
+          deadline=$((SECONDS + 360))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if curl -fsS --connect-timeout 2 --max-time 5 http://localhost:5002/health; then
+              echo " (after ${SECONDS}s)"
+              exit 0
+            fi
             sleep 5
           done
-          echo "the Presidio analyzer never became healthy" >&2
+          echo "the Presidio analyzer never became healthy within 6 minutes" >&2
+          docker ps --all --filter name=presidio >&2
+          docker inspect --format '{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} restarts={{.RestartCount}}' presidio >&2
           docker logs presidio >&2
           exit 1
 
