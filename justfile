@@ -218,10 +218,6 @@ identity-secrets:
 blueprints:
     uv run tessaro-seed blueprints --root .
 
-# Fail when the committed groups blueprint differs from a fresh render of the dataset
-blueprints-check:
-    uv run tessaro-seed blueprints --root . --check
-
 # Create the Zulip realm, its user defaults, its owner and its rules, and write the owner's key into .env (spec 0008 AC-11)
 zulip-bootstrap:
     uv run --env-file .env tessaro-seed zulip-bootstrap --root .
@@ -272,4 +268,4 @@ new-service name namespace:
     echo "created $dest and deploy/values/{{ name }}.yaml; run 'uv lock' next"
 
 # Everything CI will run
-check: lint typecheck test policy charts cluster-scripts blueprints-check
+check: lint typecheck test policy charts cluster-scripts

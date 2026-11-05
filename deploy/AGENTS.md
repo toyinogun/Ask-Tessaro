@@ -15,7 +15,7 @@ Everything the cluster's Argo CD reads from this repo, plus the sealed secrets a
 | `values/baseline.yaml` | The 16 namespaces with tier and memory quota |
 | `secrets/sealed-secrets.pem` | The Sealed Secrets controller's public certificate (valid until 2036) |
 | `secrets/<namespace>/<name>.sealed.yaml` | Strict scope SealedSecrets, written by `just seal` |
-| `platform/` | Install files for off the shelf systems, one folder per system (features 9 to 11) |
+| `platform/` | Install files for off the shelf systems, one folder per system (features 9 to 11). Empty for now: Authentik and Zulip were retired, and `identity` and `chat` stay as empty guarded namespaces |
 
 ## Commands
 

@@ -92,8 +92,3 @@ def test_check_fails_when_the_file_is_missing(tmp_path: Path) -> None:
 def test_a_broken_dataset_exits_1(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert blueprints.main(["--root", str(tmp_path), "--out", str(tmp_path / "x.yaml")]) == 1
     assert "dataset" in capsys.readouterr().err
-
-
-def test_the_committed_file_is_current() -> None:
-    """The same check `just check` runs, so a dataset change without `just blueprints` fails CI."""
-    assert blueprints.main(["--root", str(REPO_ROOT), "--check"]) == 0
